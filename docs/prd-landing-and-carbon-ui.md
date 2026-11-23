@@ -1,8 +1,8 @@
 # PRD: Landing page, Carbon theme and app screen
 
-**Status:** Approved for breakdown · **Date:** 2026-11-24 · **Version:** 3.1
+**Status:** Approved for breakdown · **Date:** 2026-11-24 · **Version:** 3.2
 **Surface:** `resibo/static/`, plus one additive summary field (`resibo/models.py`), the Excel Summary sheet (`resibo/exporters.py`) and the n8n summary email.
-**Design reference:** theme A · Carbon in the private preview artifact https://claude.ai/artifact/881fC9kubjQv7KnwyzDFJZ (version 2). It opens only for people it has been shared with.
+**Design reference:** theme A · Carbon in the private preview artifact https://claude.ai/artifact/881fC9kubjQv7KnwyzDFJZ (version 2). It opens only for people it has been shared with, and build agents cannot open it. Where this PRD and the artifact differ, **this PRD wins**: the tokens, the rack layout and the contrast fix below are the build spec.
 
 ## Decisions
 
@@ -60,7 +60,7 @@ Extraction and validation do not change.
 - More than one theme, or a theme picker. Light/dark is the only switch.
 - Invented marketing: no testimonials, logos or user counts. Accuracy claims cite the sample eval only.
 - A framework, a build step, a CMS, analytics or third-party scripts. The CSP stays as it is.
-- Accounts, pricing, a waitlist, Filipino-language copy.
+- Accounts, pricing, a waitlist, Filipino-language copy. Accounts, the free trial and paid runs are covered in [prd-trial-and-payments.md](prd-trial-and-payments.md), which builds on this PRD after wave 3.
 - Re-recording `samples/sample-result.json`.
 
 ## Information architecture
@@ -76,7 +76,7 @@ Extraction and validation do not change.
 
 ## Contract change (additive)
 
-- **New:** `summary.total_excluding_errors_by_currency`, the sum of `total_amount` over OK and REVIEW invoices, per currency.
+- **New:** `summary.total_excluding_errors_by_currency: dict[str, Money]`, the sum of `total_amount` over OK and REVIEW invoices, per currency. It uses the same type as `total_amount_by_currency`, so it serialises as JSON numbers. A currency whose invoices are all ERROR is absent from it.
 - **Unchanged:** `summary.total_amount_by_currency`, which keeps summing every invoice. The UI (`app.js`), the Excel Summary sheet (`exporters.py`) and the n8n "Code: build summary" node read it today. Changing its meaning would silently change the email for anyone running an older copy of the workflow.
 
 The UI, the Excel Summary sheet and the n8n email all move to the new field.
@@ -85,7 +85,7 @@ The UI, the Excel Summary sheet and the n8n email all move to the new field.
 
 **The idea:** a BIR invoice pad. A white original, a canary duplicate and a pink triplicate, written in carbon-blue ink, with serial numbers printed in red and a rubber stamp for rejects. In dark mode the page becomes the carbon sheet itself.
 
-**Tokens** live in a new shared `static/theme.css`.
+**Tokens** live in a new shared `static/theme.css`. `static/styles.css` stays as the app's layout stylesheet and holds no colour values. A new `static/landing.css` does the same for the landing page. `tests/test_static.py` keeps reading `styles.css` at import, so that file must not be removed.
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
@@ -94,7 +94,7 @@ The UI, the Excel Summary sheet and the n8n email all move to the new field.
 | `--ink` | `#1F2A7A` | `#DCDFF6` | Text, strong rules |
 | `--ink-2` | `#4E5687` | `#9EA3D1` | Labels, secondary text |
 | `--rule` | `#CED2E6` | `#2C3066` | Form lines |
-| `--red` | `#CF1F2E` | `#FF6B76` | Serial numbers, stamps, flag notes |
+| `--red` | `#C41C2A` | `#FF6B76` | Serial numbers, stamps, flag notes |
 | `--btn` / `--btn-fg` | `#1F2A7A` / `#FDFDFB` | `#F2E27A` / `#111331` | Primary button |
 | `--status-ok-bg` / `-fg` | `#C6EFCE` / `#006100` | `rgba(127,214,154,.12)` / `#7FD69A` | OK badge |
 | `--status-review-bg` / `-fg` | `#FFEB9C` / `#9C5700` | `rgba(242,194,90,.12)` / `#F2C25A` | Review badge |
@@ -102,7 +102,9 @@ The UI, the Excel Summary sheet and the n8n email all move to the new field.
 | `--row-tint-review` | `#FFF8E1` | `rgba(242,194,90,.06)` | Review row |
 | `--row-tint-error` | `#FDECEE` (the pink triplicate) | `#2A1736` | Rejected row |
 
-The light status values equal `STATUS_FILLS` and `ROW_TINTS` in `resibo/exporters.py`. `test_status_colours_equal_the_workbook_fills` keeps enforcing that.
+The light status values equal `STATUS_FILLS` and `ROW_TINTS` in `resibo/exporters.py`. `test_status_colours_equal_the_workbook_fills` keeps enforcing that (see "Tests that change").
+
+**Contrast.** Light `--red` is `#C41C2A`, not the `#CF1F2E` in the design reference: `#CF1F2E` on `--band` is 4.48:1, under AA, and flag messages sit on the band. `--rule` is about 1.5:1 in both modes, so it is for decoration only. Any edge that is the only boundary of a control (drop zone, tab underline, form box, focus ring) uses `--ink-2` or stronger, which is at least 3:1.
 
 **Type.** Both faces are SIL OFL and self-hosted in `static/fonts/`, because the CSP blocks Google Fonts.
 
@@ -111,6 +113,7 @@ The light status values equal `STATUS_FILLS` and `ROW_TINTS` in `resibo/exporter
   - normal width for body text
   - 85% width, letterspaced capitals for form labels
 - **Courier Prime** for every value: amounts, invoice numbers, TINs, dates and flag notes. Digits use tabular figures.
+- **The ₱ sign (U+20B1).** Courier Prime may not have this glyph. Flag messages arrive from the server with ₱ already in them (for example "Computed ₱8,960.00 but document says ₱9,260.00."), so writing "PHP" in the money formatter is not enough. The monospace stack must draw ₱ from a self-hosted font. If Courier Prime lacks it, add a `@font-face` rule for Archivo restricted to `unicode-range: U+20B1` and list it before Courier Prime in the mono stack.
 
 **Rules of use**
 
@@ -129,24 +132,50 @@ The light status values equal `STATUS_FILLS` and `ROW_TINTS` in `resibo/exporter
    - A flagged slip shows the problem field marked, the flag message in red, and a stamp.
    - INV-006 is selected by default.
    - Data comes from `GET /api/sample/result` (cached, no model cost). Nothing is hard-coded.
-4. **What it checks.** A ruled list of 8 rules: the flag code in the margin, a plain sentence, and Error or Review. Wording must match SPEC.md §9.
+   - Layout (the design reference is private, so this is the build spec):
+
+     ```
+     ┌ slips (tablist, one row, scrolls sideways under 768px) ──────────────────────┐
+     │ [p.1 SI-004217 … OK] [pp.2–3 …] … [p.6 SI-009120 … REJECTED] [p.7 …] [p.8 …]  │
+     └───────────────────────────────────────────────────────────────────────────────┘
+     ┌ redrawn document (paper, hard offset) ─────┐  ┌ What Resibo read ───────────┐
+     │ SELLER NAME              No. <invoice_no>  │  │ Seller           <value>    │
+     │ TIN <seller_tin>                Date <date>│  │ Seller TIN       <value>    │
+     │ <seller_address>                           │  │ Buyer            <value>    │
+     │ SOLD TO <buyer_name>                       │  │ Invoice no.      <value>    │
+     │ ─ line items: description · qty · amount ─ │  │ Date             <value>    │
+     │ Vatable sales                    <amount>  │  │ Document type    <value>    │
+     │ VAT 12%                          <amount>  │  │ Vatable sales    <value>    │
+     │ TOTAL AMOUNT DUE                 <amount>  │  │ VAT              <value>    │
+     │                        [REJECTED stamp, 3°]│  │ Total            <value>    │
+     └────────────────────────────────────────────┘  │ Status           <badge>    │
+                                                     └─────────────────────────────┘
+     ```
+
+     A slip's page label comes from the invoice's `source_pages`, formatted by the existing `formatPages` helper in `app.js` (moved to a shared file if the landing page needs it), never from the slip's position. In the sample, INV-002 covers pages 2–3, and INV-004 and INV-005 share page 5.
+
+     The 10 fields are `seller_name`, `seller_tin`, `buyer_name`, `invoice_number`, `invoice_date`, `document_type`, `vatable_sales`, `vat_amount`, `total_amount` and `status`. On a flagged slip, the `flag.field` row gets the wavy red underline on both sides, and the flag message shows in red under the field list. An absent value shows "—". The two columns stack under 768px.
+4. **What it checks.** A ruled list of 8 of the 15 rules: the flag code in the margin, a plain sentence, and Error or Review. Wording and severity come from SPEC.md §9. The 8 are `TOTAL_MISMATCH`, `VAT_MISMATCH`, `LINE_ITEMS_MISMATCH`, `DUPLICATE`, `TIN_FORMAT`, `MISSING_REQUIRED`, `FUTURE_DATE` and `LOW_CONFIDENCE`. The heading reads "8 of the 15 checks", with a link to SPEC.md §9 on GitHub. `MISSING_REQUIRED` is "error / warning" in §9 (which one depends on the field), so its row shows "Error or Review" and says which fields make it an Error.
 5. **How it reads, and the tally.**
    - Left: the flow sentence, the Drive → Sheets automation and a curl example.
-   - Right: a receipt-style tally with dotted leaders: fields correct 114/114, cost ~$0.08, time 25.0 s, 15 rules, 2 of 8 flagged.
-   - The caption says these figures come from the 8-document sample set.
+   - Right: a receipt-style tally with dotted leaders, in two labelled groups, so that no figure mixes runs:
+     - **Eval, 8 sample documents** (README Accuracy table): fields correct 114/114, cost ~$0.08, time 22.5 s.
+     - **Recorded sample run** (read live from `/api/sample/result`): documents 8, flagged 2, run time from `duration_ms`.
+     - A last line: "15 checks", from SPEC.md §9.
+   - The caption says these figures come from the 8-document synthetic sample set.
 6. **Footer.** "This demo is not valid for claim of input tax" · GitHub · API docs · Built by Jan Terence Francisco.
 
 ## App screen (`/app`)
 
-- **Masthead:** the shared masthead; the wordmark links back to `/`.
+- **Masthead:** the shared masthead; the wordmark links back to `/`. The app keeps today's tagline, "Turn a PDF of invoices into a clean, validated spreadsheet." The D3 headline appears only on the landing page.
 - **Upload panel:**
   - With no file chosen, **Try with sample invoices** is primary and Extract is hidden.
   - With a file chosen, **Extract** is primary.
   - The privacy and limits note sits under the drop zone.
-- **Recorded-run line:** "Recorded run · 2026-11-23" with a **Run it live now** button. It replaces the Run live toggle.
+- **Recorded-run line:** "Recorded run · <date>" with a **Run it live now** button. The date is the batch's `recorded_at`, shown in Asia/Manila time, never fixed text. This line replaces the Run live toggle.
 - **Totals band** (one ruled row):
   - Documents.
-  - Total, from `total_excluding_errors_by_currency`, with "leaves out N errors, ₱X" when there are errors.
+  - Total, from `total_excluding_errors_by_currency`, with "leaves out N errors, ₱X" when there are errors. Each currency gets its own line (see A1).
   - Status counts OK / Review / Error, which double as filters.
   - Cost (~$) with tokens below.
   - Time with the model below.
@@ -155,7 +184,7 @@ The light status values equal `STATUS_FILLS` and `ROW_TINTS` in `resibo/exporter
   - Each row has a chevron and a stamped status badge, with the flag message in red under the seller.
   - The flagged field has a wavy red underline. Rejected rows sit on the pink tint.
   - Money and dates are set in Courier Prime.
-  - An expanded row shows the flag (title, message, code) and then the line items, on the canary band.
+  - An expanded row shows each flag, then the line items, on the canary band. Each flag shows the plain sentence for its code (the same code → sentence map as the L4 list, kept in the UI only, since `Flag` has no title field: `resibo/models.py:124`), then `flag.message`, then the code. No field is added to the API.
 
 ## User stories
 
@@ -174,8 +203,9 @@ As a bookkeeper, I want totals that leave out rejected invoices while the rows s
   - the note "N error rows are kept on the Invoices sheet so you can check or delete them."
 
   With no ERROR rows, it shows a single "Total (PHP)" row, as today.
+- With more than one currency, there is one pair of rows per currency, ordered as in `total_amount_by_currency`. A currency that has only ERROR invoices shows 0.00 on its "excluding errors" row, so every currency in the all-documents total has both rows. With every invoice in ERROR, every "excluding errors" row shows 0.00.
 - The Invoices and Line Items sheets and both CSVs still contain every invoice, ERROR rows included, with Status and Flags filled in.
-- The n8n email reads "Total: PHP 155,640.00 (excludes 2 errors)". Update the "Code: build summary" node in `n8n/resibo-drive-to-sheets.json` and the field list in `n8n/README.md`.
+- The n8n email reads "Total: PHP 155,640.00 (excludes 2 errors)". Amounts use thousands separators and two decimals (`toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})`), replacing today's `toFixed(2)`. The email loops over the keys of `total_amount_by_currency` and uses 0.00 for any currency missing from the new field, so it shows the same currencies as Excel. With more than one currency, the amounts are joined with ", " and the count of errors appears once at the end. With no errors, the "(excludes …)" part is left out. With every invoice in ERROR it reads "Total: PHP 0.00 (excludes N errors)", never "n/a". Update the "Code: build summary" node in `n8n/resibo-drive-to-sheets.json` and the field list in `n8n/README.md`.
 - Update the Batch JSON example in SPEC.md §7.
 - Tests: the new field in `tests/test_models.py`, plus exporter tests for the Summary rows and for kept ERROR rows.
 
@@ -185,11 +215,14 @@ As a bookkeeper, I want totals that leave out rejected invoices while the rows s
 - Every colour on both pages comes from `theme.css` tokens. No hex values appear outside the token blocks.
 - The dark palette applies in dark mode.
 - Every text/background pair meets AA: 4.5:1 for body text, 3:1 for large text and UI.
-- `test_status_colours_equal_the_workbook_fills` passes against `theme.css`.
+- `test_status_colours_equal_the_workbook_fills` passes against `theme.css` (see "Tests that change").
+- Light `--red` on `--band` and on `--row-tint-error` is at least 4.5:1, because flag messages sit on both.
 
 **T2. Self-hosted fonts (S)**
 - Archivo and Courier Prime load from `/static/fonts/` with `font-display: swap`.
 - The fonts total at most 200 KB after Latin subsetting (estimate), and the subset includes ₱ (U+20B1).
+- Every ₱ on screen, in amounts and in server-written flag messages, is drawn from a self-hosted font. It never falls back to a system font in the middle of a value. Check with `fontTools` on the shipped files that the mono stack covers U+20B1, and record the result in the PR.
+- `pyproject.toml` package-data adds `static/fonts/*`, because `static/*` does not include subfolders.
 - If fonts are blocked, the page stays readable with system fallbacks.
 - `test_nothing_is_loaded_from_another_origin` still passes.
 
@@ -205,6 +238,7 @@ As a bookkeeper, I want totals that leave out rejected invoices while the rows s
 - The total reads `total_excluding_errors_by_currency`.
 - The note "leaves out N errors, ₱X" uses the difference between the two fields.
 - With no ERROR rows there is no note. With all rows in ERROR the total shows "—" with the note.
+- With more than one currency, each currency has its own total and its own note, for example "leaves out 1 error, $120.00". The amount left out is the per-currency difference `total_amount_by_currency[c] − total_excluding_errors_by_currency.get(c, 0)`. N counts the ERROR invoices in that currency. An ERROR invoice with no `total_amount` still counts in N but adds nothing to the amount.
 
 **A2. Consistent counts (S)**
 - The status counts equal the tab counts, and clicking a count filters the table.
@@ -224,7 +258,7 @@ As a bookkeeper, I want totals that leave out rejected invoices while the rows s
 - When idle, **Try with sample invoices** is primary. With a file chosen, **Extract** is primary.
 - The Run live toggle is removed, and **Run it live now** in the recorded-run line does its job.
 - `/app#sample` loads the cached sample.
-- Update `REQUIRED_IDS` in `tests/test_static.py`: remove `run-live`, and replace the `card-*` ids with the totals-band ids.
+- Update `tests/test_static.py` as described in "Tests that change".
 
 **A6. Carbon applied to the app (M)**
 - The app has the shared masthead, the totals band, stamped badges and the pink rejected rows.
@@ -233,9 +267,10 @@ As a bookkeeper, I want totals that leave out rejected invoices while the rows s
 ### Epic L: Landing page
 
 **L1. Routes (S)**
-- `/` serves the landing page and `/app` the tool, both under the existing UI CSP.
+- `/` serves the landing page and `/app` the tool, both under the existing UI CSP. Today the middleware applies the CSP only when `path == "/" or path.startswith("/static/")` (`resibo/api.py:77`), so `/app` must be added there. Without that change `/app` is served with no CSP at all.
+- `/app` answers both GET and HEAD, like `/`. It returns 404 "The web page is not installed." when `index.html` is missing, as `/` does today.
 - `/api/*`, `/docs` and `/health` are unchanged.
-- Tests cover both routes and their CSP. The no-inline-script/style and no-other-origin tests include `landing.html`.
+- Tests cover both routes and their CSP. Extend `test_ui_routes_carry_the_strict_csp_when_present` (`tests/test_api.py`) and `test_index_and_assets_are_served_under_the_strict_csp` to cover `/app`. The no-inline-script/style and no-other-origin tests include `landing.html`.
 
 **L2. Masthead, lede and form box (S)**
 - At 1280×800 the headline, both buttons and the form box are visible without scrolling.
@@ -255,12 +290,32 @@ As a bookkeeper, I want totals that leave out rejected invoices while the rows s
 
 **L5. How it reads, and the tally (S)**
 - The curl example is correct for `POST /api/extract` with `X-API-Key` and has no real key.
-- Each tally figure matches its source: the README eval table and the recorded run.
+- Each tally figure sits in the group of its source, and no group mixes runs:
+  - the eval group matches the README Accuracy row for `claude-sonnet-5-5`;
+  - the recorded-run group is read from `/api/sample/result` at page load;
+  - "15 checks" matches the count of flag codes in SPEC.md §9.
 - The caption names the sample set.
 
 **L6. Footer and links (S)**
 - The GitHub, `/docs`, n8n guide and `docs/architecture.md` links resolve.
-- The privacy and limits text (15 pages, 5 live runs/hour, 60 min) is defined once and used by both pages.
+- The privacy and limits text (15 pages, 5 live runs/hour, 60 min) appears word for word in both `index.html` and `landing.html`, so it shows without JavaScript. One constant in `tests/test_static.py` (`LIMITS_TEXT`) holds the text, and a test asserts both files contain exactly that string. The payments PRD (W2) later changes the constant and both files together.
+
+## Tests that change
+
+These existing tests break by design. Each change lands in the story that breaks the test. **Rule: replace each assertion with its Carbon equivalent. Never delete one without a replacement, and never weaken one to make it pass.**
+
+| Test | Today it asserts | After | Story |
+|---|---|---|---|
+| `tests/test_static.py` `REQUIRED_IDS` | `run-live`, `card-documents`, `card-total`, `card-review`, `card-cost`, `card-time`, `summary-cards`, `filter-chips` | Remove `run-live`. Replace the card ids with the totals-band ids (`totals-band`, `total-documents`, `total-amount`, `total-errors-note`, `count-ok`, `count-review`, `count-error`, `total-cost`, `total-time`). Replace `filter-chips` with `filter-tabs`. Add `run-live-btn` and `recorded-run`. | A5, A6 |
+| `test_index_has_no_inline_script_or_style` | `script_srcs == ["/static/app.js"]` | `["/static/theme.js", "/static/app.js"]` in that order, with `theme.js` inside `<head>`. Same check for `landing.html`, with its own script list. | T3, L1 |
+| `test_status_colours_equal_the_workbook_fills` | Reads `styles.css`; asserts `--accent: #0f766e;` | Reads `theme.css`. The STATUS_FILLS and ROW_TINTS assertions stay. Drop the `--accent` assertion, and assert that `HEADER_FILL` (`0F766E`) is still the Excel header colour in `exporters.py`, since the header stays teal. | T1 |
+| `test_nothing_is_loaded_from_another_origin` | `index.html`, `styles.css`, `app.js` | Also `landing.html`, `theme.css`, `theme.js` and any landing JS. `@font-face` `src` URLs must be relative. | T2, L1 |
+| `test_spec_strings_are_present` | `"Run live"`, `role="switch"`, `aria-checked`, "turn on Run live to process it now", the privacy note as a literal | `"Run it live now"`, and the cached-result message reworded to point at that button. The tagline and other labels stay. The privacy-note literal moves to the `LIMITS_TEXT` constant, asserted in both `index.html` and `landing.html` (L6). | A5, L6 |
+| `tests/test_exporters.py:167` (Summary sheet) | `cells["Total (PHP)"] == approx(11200 + 55 + 1300)`; the fixture includes an ERROR invoice | `cells["Total, excluding errors (PHP)"] == approx(11200 + 55)`, `cells["Total, all documents (PHP)"] == approx(11200 + 55 + 1300)`, and the "1 error rows are kept…" note row is present. Add a no-ERROR case that still has a single `Total (PHP)` row. | B1 |
+| `test_layout_is_responsive_to_360px` | `repeat(2, 1fr)` (the card grid) | The viewport meta, a `max-width` media query, and `overflow-x: auto` on the table container. The totals-band layout replaces the card grid. | A6 |
+| `test_index_and_assets_are_served_under_the_strict_csp` | `/`, `/static/*` | Also `/app`, `/static/theme.css` and `/static/theme.js`; `/` now serves `landing.html`. | L1 |
+| `test_javascript_never_inserts_html` | `app.js` | Also `theme.js` and any landing JS. | T3, L3 |
+| `tests/test_n8n.py` `test_referenced_batch_fields_exist_in_the_batch_model` | Fields the workflow reads | Still passes once `total_excluding_errors_by_currency` exists on `Summary`. | B1 |
 
 ## Requirements
 
@@ -309,9 +364,12 @@ As a bookkeeper, I want totals that leave out rejected invoices while the rows s
 
 - **Deploy:** static assets, one new route and one additive field, in a single Railway deploy. Rollback is a redeploy of the previous commit.
 - **Waves:**
-  1. **Foundation and honest numbers:** B1, T1, T2, T3, A1, A2.
+  1. **Foundation, routes and honest numbers:** L1, B1, T1, T2, T3, A1, A2.
+     - L1 comes first. It adds `/app` (with the CSP middleware change) and serves a **placeholder** `landing.html` at `/`: the masthead, the headline and an "Open the app" link, in Carbon, with no rack.
+     - Then T1–T3 can check "both pages", theme persistence across `/` and `/app`, and the no-other-origin tests from the start.
   2. **App screen in Carbon:** A3, A4, A5, A6.
-  3. **Landing page:** L1–L6.
+  3. **Landing page:** L2–L6, replacing the placeholder.
+- **Owner checks, not build gates:** Lighthouse scores, axe runs and the 5-person moderated test are run by the owner after wave 3. Build agents cannot run them, so they are not acceptance criteria for any story.
 - **Doc updates in the same PRs:**
   - SPEC.md §7 (new field), §11 (route `/app`), §12 (landing, `/app`, Carbon, toggle removed).
   - The README screenshot.
