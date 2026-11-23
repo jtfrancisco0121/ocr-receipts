@@ -30,7 +30,7 @@ def test_env_example_holds_no_secret_values():
         re.findall(r"^([A-Z][A-Z0-9_]*)=(.*)$", (ROOT / ".env.example").read_text(), re.M)
     )
     assert values["ANTHROPIC_API_KEY"] == "" and values["RESIBO_API_KEY"] == ""
-    assert not re.search(r"sk-ant", (ROOT / ".env.example").read_text())
+    assert ("sk-" + "ant") not in (ROOT / ".env.example").read_text()
 
 
 def test_dockerfile_cmd_is_shell_form_exec_uvicorn_single_worker():
@@ -82,3 +82,55 @@ def test_compose_names_both_services_on_one_network():
     assert "env_file: .env" in text and "http://resibo:8000" in text
     assert text.count("- resibo-net") == 2
     assert "n8n_data:/home/node/.n8n" in text
+
+
+def test_ci_runs_lint_format_and_offline_tests_on_python_312():
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    assert "ruff check ." in ci
+    assert "ruff format --check ." in ci
+    assert 'pytest -m "not live"' in ci
+    assert 'python-version: "3.12"' in ci
+    assert '".[dev]"' in ci
+    assert "push:" in ci and "pull_request:" in ci
+
+
+def test_no_anthropic_key_material_in_tracked_files():
+    needle = "sk-" + "ant-"  # built here so this file does not contain the literal prefix
+    skip = {"uv.lock", "samples/sample-invoices.pdf"}
+    for path in ROOT.rglob("*"):
+        if not path.is_file() or ".git" in path.parts or ".venv" in path.parts:
+            continue
+        if any(part in {"__pycache__", ".ruff_cache", ".pytest_cache"} for part in path.parts):
+            continue
+        if str(path.relative_to(ROOT)) in skip:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        assert needle not in text, path
+
+
+def test_readme_has_every_section_20_heading_and_marks_human_numbers_todo():
+    readme = (ROOT / "README.md").read_text()
+    headings = [
+        "## What it does",
+        "## How it works",
+        "## Why it's trustworthy",
+        "## Accuracy",
+        "## Automation with n8n",
+        "## API",
+        "## Run locally",
+        "## Deploy to Railway",
+        "## Tests",
+        "## Project structure",
+        "## Limitations and roadmap",
+        "## Built by",
+    ]
+    for heading in headings:
+        assert heading in readme, heading
+    assert readme.startswith("# Resibo")
+    assert "TODO" in readme.split("## Accuracy")[1].split("## Automation")[0]  # eval numbers
+    assert "Built with Claude Code via DCTerminalv2" in readme
+    assert "docs/architecture.md" in readme
+    assert (ROOT / "docs" / "architecture.md").exists() and (ROOT / "LICENSE").exists()
