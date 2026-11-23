@@ -1,0 +1,27 @@
+# Local demo: Resibo + n8n on one network. Copy .env.example to .env first.
+# n8n reaches the app at http://resibo:8000 (use that as resibo_url in "Set: config").
+services:
+  resibo:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      PORT: "8000"
+    networks:
+      - resibo-net
+
+  n8n:
+    image: n8nio/n8n:2.48.8
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - resibo-net
+
+volumes:
+  n8n_data:
+
+networks:
+  resibo-net:
