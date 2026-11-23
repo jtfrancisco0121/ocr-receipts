@@ -4,7 +4,7 @@ Money is ``Decimal`` everywhere and serialized as a JSON number (AD-7).
 """
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from enum import StrEnum
@@ -369,7 +369,6 @@ class Extraction:
     repair_retries: int = 0
     halvings: int = 0
     llm_calls: int = 0
-    extra: dict[str, object] = field(default_factory=dict)
 
 
 class Usage(BaseModel):
