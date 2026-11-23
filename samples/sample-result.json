@@ -1,0 +1,557 @@
+{
+  "format_version": 1,
+  "file_name": "sample-invoices.pdf",
+  "page_count": 8,
+  "pages_per_chunk": 10,
+  "model": "claude-sonnet-5-5",
+  "recorded_at": "2026-11-23T13:14:12Z",
+  "duration_ms": 25013,
+  "usage": {
+    "input_tokens": 17151,
+    "output_tokens": 4619,
+    "estimated_cost_usd": 0.0805
+  },
+  "calls": [
+    {
+      "first_page": 1,
+      "last_page": 8,
+      "repair": false,
+      "raw_output": {
+        "invoices": [
+          {
+            "document_type": "sales_invoice",
+            "seller_name": "Mabuhay Office Supply Co.",
+            "seller_tin": "201-555-014-00000",
+            "seller_address": "123 Mabini St., Brgy. San Antonio, Pasig City 1605",
+            "buyer_name": "Sampaguita Trading Corporation",
+            "buyer_tin": "205-318-774-00000",
+            "buyer_address": "45 Katipunan Ave., Quezon City 1108",
+            "invoice_number": "SI-004217",
+            "invoice_date": "2026-09-04",
+            "due_date": "",
+            "payment_terms": "",
+            "payment_method": "",
+            "currency": "PHP",
+            "vatable_sales": "10000.00",
+            "vat_exempt_sales": "0.00",
+            "zero_rated_sales": "0.00",
+            "subtotal": "",
+            "vat_amount": "1200.00",
+            "discount": "",
+            "withholding_tax": "",
+            "total_amount": "11200.00",
+            "line_items": [
+              {
+                "description": "Bond paper A4, 70gsm",
+                "quantity": "20",
+                "unit": "ream",
+                "unit_price": "280.00",
+                "amount": "5600.00"
+              },
+              {
+                "description": "Ballpen, black, box of 12",
+                "quantity": "10",
+                "unit": "box",
+                "unit_price": "120.00",
+                "amount": "1200.00"
+              },
+              {
+                "description": "Folder, long, assorted",
+                "quantity": "100",
+                "unit": "pcs",
+                "unit_price": "22.00",
+                "amount": "2200.00"
+              },
+              {
+                "description": "Printer ink cartridge",
+                "quantity": "4",
+                "unit": "pcs",
+                "unit_price": "550.00",
+                "amount": "2200.00"
+              }
+            ],
+            "source_pages": [
+              1
+            ],
+            "is_complete": true,
+            "uncertain_fields": [],
+            "extraction_notes": "Page 7 appears to be an exact duplicate of this invoice."
+          },
+          {
+            "document_type": "service_invoice",
+            "seller_name": "Pinoy Tech Solutions Inc.",
+            "seller_tin": "204-777-310-00000",
+            "seller_address": "8F Aurora Tower, Cubao, Quezon City 1109",
+            "buyer_name": "Sampaguita Trading Corporation",
+            "buyer_tin": "205-318-774-00000",
+            "buyer_address": "45 Katipunan Ave., Quezon City 1108",
+            "invoice_number": "SV-001893",
+            "invoice_date": "2026-10-15",
+            "due_date": "2026-11-14",
+            "payment_terms": "Net 30",
+            "payment_method": "",
+            "currency": "PHP",
+            "vatable_sales": "123392.86",
+            "vat_exempt_sales": "0.00",
+            "zero_rated_sales": "0.00",
+            "subtotal": "",
+            "vat_amount": "14807.14",
+            "discount": "",
+            "withholding_tax": "",
+            "total_amount": "138200.00",
+            "line_items": [
+              {
+                "description": "Network cabling, Floor 2",
+                "quantity": "11",
+                "unit": "hrs",
+                "unit_price": "1000.00",
+                "amount": "11000.00"
+              },
+              {
+                "description": "Network cabling, Floor 3",
+                "quantity": "12",
+                "unit": "hrs",
+                "unit_price": "1000.00",
+                "amount": "12000.00"
+              },
+              {
+                "description": "Wi-Fi access point installation",
+                "quantity": "9",
+                "unit": "hrs",
+                "unit_price": "1200.00",
+                "amount": "10800.00"
+              },
+              {
+                "description": "Firewall configuration",
+                "quantity": "4",
+                "unit": "hrs",
+                "unit_price": "1500.00",
+                "amount": "6000.00"
+              },
+              {
+                "description": "Server rack setup",
+                "quantity": "4",
+                "unit": "hrs",
+                "unit_price": "1200.00",
+                "amount": "4800.00"
+              },
+              {
+                "description": "Backup system setup",
+                "quantity": "10",
+                "unit": "hrs",
+                "unit_price": "1500.00",
+                "amount": "15000.00"
+              },
+              {
+                "description": "Email migration",
+                "quantity": "3",
+                "unit": "hrs",
+                "unit_price": "800.00",
+                "amount": "2400.00"
+              },
+              {
+                "description": "User account provisioning",
+                "quantity": "10",
+                "unit": "hrs",
+                "unit_price": "800.00",
+                "amount": "8000.00"
+              },
+              {
+                "description": "Workstation imaging",
+                "quantity": "8",
+                "unit": "hrs",
+                "unit_price": "1000.00",
+                "amount": "8000.00"
+              },
+              {
+                "description": "Printer deployment",
+                "quantity": "8",
+                "unit": "hrs",
+                "unit_price": "800.00",
+                "amount": "6400.00"
+              },
+              {
+                "description": "VPN configuration",
+                "quantity": "4",
+                "unit": "hrs",
+                "unit_price": "1500.00",
+                "amount": "6000.00"
+              },
+              {
+                "description": "Security patching",
+                "quantity": "2",
+                "unit": "hrs",
+                "unit_price": "1200.00",
+                "amount": "2400.00"
+              },
+              {
+                "description": "Antivirus rollout",
+                "quantity": "12",
+                "unit": "hrs",
+                "unit_price": "1000.00",
+                "amount": "12000.00"
+              },
+              {
+                "description": "Staff orientation, IT policy",
+                "quantity": "3",
+                "unit": "hrs",
+                "unit_price": "1200.00",
+                "amount": "3600.00"
+              },
+              {
+                "description": "Helpdesk support, week 1",
+                "quantity": "3",
+                "unit": "hrs",
+                "unit_price": "800.00",
+                "amount": "2400.00"
+              },
+              {
+                "description": "Helpdesk support, week 2",
+                "quantity": "8",
+                "unit": "hrs",
+                "unit_price": "800.00",
+                "amount": "6400.00"
+              },
+              {
+                "description": "Documentation and handover",
+                "quantity": "12",
+                "unit": "hrs",
+                "unit_price": "1000.00",
+                "amount": "12000.00"
+              },
+              {
+                "description": "Project management",
+                "quantity": "6",
+                "unit": "hrs",
+                "unit_price": "1500.00",
+                "amount": "9000.00"
+              }
+            ],
+            "source_pages": [
+              2,
+              3
+            ],
+            "is_complete": true,
+            "uncertain_fields": [],
+            "extraction_notes": "Invoice spans pages 2-3."
+          },
+          {
+            "document_type": "official_receipt",
+            "seller_name": "Ngiti Dental Clinic",
+            "seller_tin": "207-418-662-00000",
+            "seller_address": "27 Rizal St., Brgy. Poblacion, Makati City 1210",
+            "buyer_name": "Maria Dela Cruz",
+            "buyer_tin": "",
+            "buyer_address": "",
+            "invoice_number": "OR-000731",
+            "invoice_date": "2026-10-27",
+            "due_date": "",
+            "payment_terms": "",
+            "payment_method": "",
+            "currency": "PHP",
+            "vatable_sales": "1205.36",
+            "vat_exempt_sales": "0.00",
+            "zero_rated_sales": "0.00",
+            "subtotal": "",
+            "vat_amount": "144.64",
+            "discount": "150.00",
+            "withholding_tax": "",
+            "total_amount": "1350.00",
+            "line_items": [
+              {
+                "description": "Dental cleaning (prophylaxis)",
+                "quantity": "1",
+                "unit": "svc",
+                "unit_price": "1000.00",
+                "amount": "1000.00"
+              },
+              {
+                "description": "Fluoride treatment",
+                "quantity": "1",
+                "unit": "svc",
+                "unit_price": "500.00",
+                "amount": "500.00"
+              }
+            ],
+            "source_pages": [
+              4
+            ],
+            "is_complete": true,
+            "uncertain_fields": [],
+            "extraction_notes": ""
+          },
+          {
+            "document_type": "cash_receipt",
+            "seller_name": "Aling Nena's Sari-Sari Store",
+            "seller_tin": "",
+            "seller_address": "Purok 3, Brgy. Maligaya, Antipolo City 1870",
+            "buyer_name": "",
+            "buyer_tin": "",
+            "buyer_address": "",
+            "invoice_number": "000457",
+            "invoice_date": "2026-11-02",
+            "due_date": "",
+            "payment_terms": "",
+            "payment_method": "cash",
+            "currency": "PHP",
+            "vatable_sales": "",
+            "vat_exempt_sales": "",
+            "zero_rated_sales": "",
+            "subtotal": "",
+            "vat_amount": "",
+            "discount": "",
+            "withholding_tax": "",
+            "total_amount": "770.00",
+            "line_items": [
+              {
+                "description": "Rice, 5 kg",
+                "quantity": "2",
+                "unit": "sack",
+                "unit_price": "",
+                "amount": "490.00"
+              },
+              {
+                "description": "Cooking oil, 1 L",
+                "quantity": "1",
+                "unit": "btl",
+                "unit_price": "",
+                "amount": "110.00"
+              },
+              {
+                "description": "Sugar, 1 kg",
+                "quantity": "2",
+                "unit": "pack",
+                "unit_price": "",
+                "amount": "170.00"
+              }
+            ],
+            "source_pages": [
+              5
+            ],
+            "is_complete": true,
+            "uncertain_fields": [],
+            "extraction_notes": "Two receipts on page 5."
+          },
+          {
+            "document_type": "cash_receipt",
+            "seller_name": "Kuya Jun's Hardware",
+            "seller_tin": "",
+            "seller_address": "Km 18 Marcos Highway, Cainta, Rizal 1900",
+            "buyer_name": "",
+            "buyer_tin": "",
+            "buyer_address": "",
+            "invoice_number": "001123",
+            "invoice_date": "2026-11-09",
+            "due_date": "",
+            "payment_terms": "",
+            "payment_method": "cash",
+            "currency": "PHP",
+            "vatable_sales": "",
+            "vat_exempt_sales": "",
+            "zero_rated_sales": "",
+            "subtotal": "",
+            "vat_amount": "",
+            "discount": "",
+            "withholding_tax": "",
+            "total_amount": "760.00",
+            "line_items": [
+              {
+                "description": "Concrete nails, 3 in",
+                "quantity": "2",
+                "unit": "kg",
+                "unit_price": "",
+                "amount": "190.00"
+              },
+              {
+                "description": "Paint brush, 4 in",
+                "quantity": "3",
+                "unit": "pcs",
+                "unit_price": "",
+                "amount": "360.00"
+              },
+              {
+                "description": "Masking tape",
+                "quantity": "4",
+                "unit": "roll",
+                "unit_price": "",
+                "amount": "210.00"
+              }
+            ],
+            "source_pages": [
+              5
+            ],
+            "is_complete": true,
+            "uncertain_fields": [],
+            "extraction_notes": "Second receipt on page 5."
+          },
+          {
+            "document_type": "sales_invoice",
+            "seller_name": "Datu Computer Mart",
+            "seller_tin": "209-632-155-00000",
+            "seller_address": "Unit 12, Gilmore IT Center, San Juan City 1500",
+            "buyer_name": "Sampaguita Trading Corporation",
+            "buyer_tin": "205-318-774-00000",
+            "buyer_address": "45 Katipunan Ave., Quezon City 1108",
+            "invoice_number": "SI-009120",
+            "invoice_date": "2026-10-05",
+            "due_date": "",
+            "payment_terms": "",
+            "payment_method": "",
+            "currency": "PHP",
+            "vatable_sales": "8000.00",
+            "vat_exempt_sales": "0.00",
+            "zero_rated_sales": "0.00",
+            "subtotal": "",
+            "vat_amount": "960.00",
+            "discount": "",
+            "withholding_tax": "",
+            "total_amount": "9260.00",
+            "line_items": [
+              {
+                "description": "Laptop bag, 15 in",
+                "quantity": "4",
+                "unit": "pcs",
+                "unit_price": "850.00",
+                "amount": "3400.00"
+              },
+              {
+                "description": "Wireless mouse",
+                "quantity": "8",
+                "unit": "pcs",
+                "unit_price": "320.00",
+                "amount": "2560.00"
+              },
+              {
+                "description": "USB-C hub",
+                "quantity": "4",
+                "unit": "pcs",
+                "unit_price": "750.00",
+                "amount": "3000.00"
+              }
+            ],
+            "source_pages": [
+              6
+            ],
+            "is_complete": true,
+            "uncertain_fields": [],
+            "extraction_notes": "Printed values do not sum to the stated VATable sales; copied as printed."
+          },
+          {
+            "document_type": "sales_invoice",
+            "seller_name": "Mabuhay Office Supply Co.",
+            "seller_tin": "201-555-014-00000",
+            "seller_address": "123 Mabini St., Brgy. San Antonio, Pasig City 1605",
+            "buyer_name": "Sampaguita Trading Corporation",
+            "buyer_tin": "205-318-774-00000",
+            "buyer_address": "45 Katipunan Ave., Quezon City 1108",
+            "invoice_number": "SI-004217",
+            "invoice_date": "2026-09-04",
+            "due_date": "",
+            "payment_terms": "",
+            "payment_method": "",
+            "currency": "PHP",
+            "vatable_sales": "10000.00",
+            "vat_exempt_sales": "0.00",
+            "zero_rated_sales": "0.00",
+            "subtotal": "",
+            "vat_amount": "1200.00",
+            "discount": "",
+            "withholding_tax": "",
+            "total_amount": "11200.00",
+            "line_items": [
+              {
+                "description": "Bond paper A4, 70gsm",
+                "quantity": "20",
+                "unit": "ream",
+                "unit_price": "280.00",
+                "amount": "5600.00"
+              },
+              {
+                "description": "Ballpen, black, box of 12",
+                "quantity": "10",
+                "unit": "box",
+                "unit_price": "120.00",
+                "amount": "1200.00"
+              },
+              {
+                "description": "Folder, long, assorted",
+                "quantity": "100",
+                "unit": "pcs",
+                "unit_price": "22.00",
+                "amount": "2200.00"
+              },
+              {
+                "description": "Printer ink cartridge",
+                "quantity": "4",
+                "unit": "pcs",
+                "unit_price": "550.00",
+                "amount": "2200.00"
+              }
+            ],
+            "source_pages": [
+              7
+            ],
+            "is_complete": true,
+            "uncertain_fields": [],
+            "extraction_notes": "Duplicate of the invoice on page 1."
+          },
+          {
+            "document_type": "sales_invoice",
+            "seller_name": "Bayanihan Hardware Trading",
+            "seller_tin": "203-904-218-00000",
+            "seller_address": "55 Quirino Highway, Novaliches, Quezon City 1123",
+            "buyer_name": "Sampaguita Trading Corporation",
+            "buyer_tin": "205-318-774-00000",
+            "buyer_address": "45 Katipunan Ave., Quezon City 1108",
+            "invoice_number": "SI-002764",
+            "invoice_date": "2026-08-21",
+            "due_date": "",
+            "payment_terms": "",
+            "payment_method": "",
+            "currency": "PHP",
+            "vatable_sales": "3000.00",
+            "vat_exempt_sales": "0.00",
+            "zero_rated_sales": "0.00",
+            "subtotal": "",
+            "vat_amount": "360.00",
+            "discount": "",
+            "withholding_tax": "",
+            "total_amount": "3360.00",
+            "line_items": [
+              {
+                "description": "Portland cement, 40 kg",
+                "quantity": "6",
+                "unit": "bag",
+                "unit_price": "280.00",
+                "amount": "1680.00"
+              },
+              {
+                "description": "Hollow blocks, 4 in",
+                "quantity": "100",
+                "unit": "pcs",
+                "unit_price": "8.40",
+                "amount": "840.00"
+              },
+              {
+                "description": "GI wire, #16",
+                "quantity": "8",
+                "unit": "kg",
+                "unit_price": "105.00",
+                "amount": "840.00"
+              }
+            ],
+            "source_pages": [
+              8
+            ],
+            "is_complete": true,
+            "uncertain_fields": [],
+            "extraction_notes": "Scanned, skewed page with a PAID stamp partly overlapping the total area."
+          }
+        ]
+      },
+      "input_tokens": 17151,
+      "output_tokens": 4619,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import json
 import re
+import subprocess
 from pathlib import Path
 
 from resibo.config import Settings
@@ -97,12 +98,18 @@ def test_ci_runs_lint_format_and_offline_tests_on_python_312():
 def test_no_anthropic_key_material_in_tracked_files():
     needle = "sk-" + "ant-"  # built here so this file does not contain the literal prefix
     skip = {"uv.lock", "samples/sample-invoices.pdf"}
-    for path in ROOT.rglob("*"):
-        if not path.is_file() or ".git" in path.parts or ".venv" in path.parts:
-            continue
-        if any(part in {"__pycache__", ".ruff_cache", ".pytest_cache"} for part in path.parts):
-            continue
-        if str(path.relative_to(ROOT)) in skip:
+    # Tracked and staged files plus untracked files git would pick up; the gitignored
+    # local .env (which holds the real key) is excluded on purpose.
+    listed = subprocess.run(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()
+    for name in listed:
+        path = ROOT / name
+        if not path.is_file() or name in skip:
             continue
         try:
             text = path.read_text(encoding="utf-8")
