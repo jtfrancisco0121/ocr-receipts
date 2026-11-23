@@ -6,16 +6,20 @@ This module only reads recordings; the only writer is ``llm.RecordingLLM`` (AD-5
 """
 
 import json
+import secrets
 import threading
 from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from resibo.config import Settings
 from resibo.extractor import CallPolicy, extract_batch
 from resibo.llm import RECORDING_FORMAT_VERSION, LLMResult
-from resibo.models import ErrorCode, Extraction, ResiboError
+from resibo.models import Batch, ErrorCode, Extraction, ResiboError, build_batch
+from resibo.store import BatchStore
+from resibo.validation import manila_today
 
 NOT_RECORDED_MESSAGE = "Sample result not recorded yet. Run live to process the sample instead."
 
@@ -117,3 +121,55 @@ def replay_extraction(
     extraction.output_tokens = recording.output_tokens
     extraction.duration_ms = recording.duration_ms
     return extraction
+
+
+class SampleService:
+    """One shared cached-sample batch per process, rebuilt under a lock when it has expired or
+    when its id is no longer in the store (LRU eviction), so repeat calls do not grow the store."""
+
+    def __init__(
+        self,
+        samples_dir: Path,
+        settings: Settings,
+        store: BatchStore,
+        clock: Callable[[], datetime],
+    ):
+        self.samples_dir = Path(samples_dir)
+        self._settings = settings
+        self._store = store
+        self._clock = clock
+        self._lock = threading.Lock()
+        self._batch_id: str | None = None
+
+    @property
+    def pdf_path(self) -> Path:
+        return self.samples_dir / "sample-invoices.pdf"
+
+    @property
+    def recording_path(self) -> Path:
+        return self.samples_dir / "sample-result.json"
+
+    def get_batch(self) -> Batch:
+        with self._lock:
+            if self._batch_id is not None and self._store.contains(self._batch_id):
+                return self._store.get(self._batch_id)
+            recording = load_recording(self.recording_path)  # SAMPLE_NOT_RECORDED when absent
+            try:
+                pdf_bytes = self.pdf_path.read_bytes()
+            except OSError as exc:
+                raise ResiboError(
+                    ErrorCode.INTERNAL, "The sample PDF is missing on this server."
+                ) from exc
+            now = self._clock()
+            extraction = replay_extraction(recording, pdf_bytes, self._settings, manila_today(now))
+            batch = build_batch(
+                extraction,
+                secrets.token_urlsafe(8),
+                recording.file_name,
+                now + timedelta(minutes=self._settings.result_ttl_minutes),
+                cached=True,
+                recorded_at=datetime.fromisoformat(recording.recorded_at),
+            )
+            self._store.put(batch)
+            self._batch_id = batch.batch_id
+            return batch

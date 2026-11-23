@@ -403,6 +403,7 @@ class Batch(BaseModel):
     invoices: list[Invoice]
     downloads: Downloads
     expires_at: datetime
+    recorded_at: datetime | None = None  # only set on the cached sample (original run time)
 
 
 def summarize(invoices: list[Invoice]) -> Summary:
@@ -425,6 +426,7 @@ def build_batch(
     file_name: str,
     expires_at: datetime,
     cached: bool = False,
+    recorded_at: datetime | None = None,
 ) -> Batch:
     """The only place a Batch is assembled: summary, usage cost and download paths."""
     cost = config.estimate_cost(extraction.model, extraction.input_tokens, extraction.output_tokens)
@@ -449,4 +451,5 @@ def build_batch(
             line_items_csv=f"{base}/line_items.csv",
         ),
         expires_at=expires_at.astimezone(UTC).replace(microsecond=0),
+        recorded_at=recorded_at.astimezone(UTC).replace(microsecond=0) if recorded_at else None,
     )

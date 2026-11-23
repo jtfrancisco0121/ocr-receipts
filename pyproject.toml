@@ -44,6 +44,9 @@ extend-exclude = ["bmad", "*.md"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
 
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.File"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["live: calls the real Anthropic API (needs ANTHROPIC_API_KEY)"]
