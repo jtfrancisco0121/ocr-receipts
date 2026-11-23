@@ -1,0 +1,49 @@
+[project]
+name = "resibo"
+version = "0.1.0"
+description = "Turn a PDF of invoices and receipts into clean, validated spreadsheet data."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+  "fastapi~=0.165.0",
+  "uvicorn~=0.54.0",
+  "anthropic~=2.12.0",
+  "pypdf[crypto]~=7.1.1",
+  "pydantic~=2.14.4",
+  "pydantic-settings~=2.16.3",
+  "openpyxl~=3.1.5",
+  "python-multipart~=0.0.34",
+  "tzdata~=2026.6",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest~=9.2.0",
+  "httpx~=0.28.1",
+  "ruff~=0.17.6",
+  "reportlab~=5.1.0",
+  "pillow~=13.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["resibo*"]
+
+[tool.setuptools.package-data]
+resibo = ["static/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["bmad", "*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["live: calls the real Anthropic API (needs ANTHROPIC_API_KEY)"]
