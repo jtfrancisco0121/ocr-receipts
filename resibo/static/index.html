@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resibo - AI invoice and receipt extractor</title>
+  <meta name="description" content="Turn a PDF of invoices into a clean, validated spreadsheet.">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <h1 id="title">Resibo</h1>
+      <p id="tagline">Turn a PDF of invoices into a clean, validated spreadsheet.</p>
+    </header>
+
+    <section class="panel" aria-label="Upload">
+      <div id="drop-zone" class="drop-zone" role="button" tabindex="0"
+           aria-label="Choose a PDF file">
+        <span id="drop-text">Drop a PDF here, or click to choose a file</span>
+      </div>
+      <input id="file-input" class="visually-hidden" type="file" accept="application/pdf"
+             aria-label="PDF file">
+      <div class="actions">
+        <button id="extract-btn" class="btn btn-primary" type="button" disabled>Extract</button>
+        <button id="sample-btn" class="btn btn-secondary" type="button">Try with sample invoices</button>
+        <label class="toggle-wrap">
+          <button id="run-live" class="toggle" type="button" role="switch" aria-checked="false"
+                  aria-label="Run live"><span class="toggle-thumb"></span></button>
+          <span class="toggle-label">Run live</span>
+        </label>
+        <a id="sample-pdf-link" class="link" href="/api/sample" target="_blank" rel="noopener">View sample PDF</a>
+      </div>
+    </section>
+
+    <p id="privacy-note" class="small muted">Files are sent to the Anthropic API for reading and are not stored. Results expire after 60 minutes. Demo limit: 15 pages, 5 live runs per hour.</p>
+
+    <section id="progress" class="progress" aria-live="polite" hidden>
+      <span class="spinner" aria-hidden="true"></span>
+      <span id="progress-text">Reading your PDF with Claude…</span>
+    </section>
+    <p id="announcer" class="visually-hidden" aria-live="polite"></p>
+
+    <div id="error-banner" class="banner" role="alert" hidden>
+      <span id="error-message"></span>
+      <button id="error-fallback" class="btn btn-secondary btn-small" type="button" hidden>Show the cached sample instead</button>
+      <button id="error-dismiss" class="banner-close" type="button" aria-label="Dismiss">&times;</button>
+    </div>
+
+    <section id="sample-missing" class="notice" hidden>
+      <p>Sample result not recorded yet</p>
+      <p class="small muted">You can still read the <a class="link" href="/api/sample" target="_blank" rel="noopener">sample PDF</a>, or turn on Run live to process it now.</p>
+    </section>
+
+    <section id="results" class="results" hidden>
+      <p id="cached-label" class="cached-label" hidden></p>
+      <div id="summary-cards" class="cards">
+        <div class="card"><span class="card-label">Documents found</span><span id="card-documents" class="card-value">0</span></div>
+        <div class="card"><span class="card-label">Total (₱)</span><span id="card-total" class="card-value">—</span></div>
+        <div class="card"><span class="card-label">Needs review</span><span id="card-review" class="card-value">0</span></div>
+        <div class="card"><span class="card-label">Tokens / est. cost</span><span id="card-cost" class="card-value card-value-small">—</span></div>
+        <div class="card"><span class="card-label">Time taken</span><span id="card-time" class="card-value">—</span></div>
+      </div>
+      <div id="downloads" class="actions">
+        <button id="btn-xlsx" class="btn btn-primary" type="button">Download Excel</button>
+        <button id="btn-invoices-csv" class="btn btn-secondary" type="button">Download Invoices CSV</button>
+        <button id="btn-line-items-csv" class="btn btn-secondary" type="button">Download Line items CSV</button>
+      </div>
+      <div id="filter-chips" class="chips" role="group" aria-label="Filter by status"></div>
+      <p id="results-empty" class="muted" hidden></p>
+      <div class="table-wrap">
+        <table id="results-table" class="table">
+          <thead>
+            <tr>
+              <th scope="col">Status</th>
+              <th scope="col">Seller</th>
+              <th scope="col">Invoice No.</th>
+              <th scope="col">Date</th>
+              <th scope="col" class="num">VAT</th>
+              <th scope="col" class="num">Total</th>
+              <th scope="col">Pages</th>
+              <th scope="col">Flags</th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="footer small muted">
+      <a id="github-link" class="link" href="https://github.com/jtfrancisco0121/ocr-receipts" target="_blank" rel="noopener">GitHub</a>
+      <span>Built by Jan Terence Francisco</span>
+      <a id="docs-link" class="link" href="/docs" target="_blank" rel="noopener">API docs</a>
+    </footer>
+  </main>
+</body>
+</html>

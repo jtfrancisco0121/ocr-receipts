@@ -1,0 +1,813 @@
+{
+  "name": "Resibo: Drive to Sheets",
+  "nodes": [
+    {
+      "id": "87dfb756-0f0a-5480-9bab-0398c62fd0d4",
+      "name": "Google Drive Trigger",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Inbox"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "id": "fc0a4a19-d261-5868-bad4-004aa8ad9d7c",
+      "name": "Set: config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "11bb1fa0-1a3e-57ed-a3c8-fdc359d65354",
+              "name": "resibo_url",
+              "value": "http://resibo:8000",
+              "type": "string"
+            },
+            {
+              "id": "7af8ecb6-fb55-5bb0-8d66-141ac571ddbf",
+              "name": "public_url",
+              "value": "https://YOUR-APP.up.railway.app",
+              "type": "string"
+            },
+            {
+              "id": "52ebdce8-a86f-573f-8f66-d02f8204d183",
+              "name": "notify_email",
+              "value": "you@example.com",
+              "type": "string"
+            },
+            {
+              "id": "251c2edc-40a9-5c74-8fad-5270a9943c3f",
+              "name": "sheet_id",
+              "value": "YOUR_GOOGLE_SHEET_ID",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "db194ceb-9e26-5aeb-813b-b4ccd23a177e",
+      "name": "IF: is PDF",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "49a36dd5-647b-5ee8-afa1-7bf2be54f3d5",
+              "leftValue": "={{ $('Google Drive Trigger').first().json.mimeType }}",
+              "rightValue": "application/pdf",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f907190d-e645-5e74-99dc-d7b399215aa1",
+      "name": "Google Drive: Move (not a PDF)",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        660,
+        500
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Google Drive Trigger').first().json.id }}"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Needs Review"
+        }
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "id": "1d7fe3bb-16e2-5e28-8c7e-9b597b04927c",
+      "name": "Google Drive: Download file",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        660,
+        200
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Google Drive Trigger').first().json.id }}"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "id": "f5eeeeae-7869-56f6-a1c9-31ec5b957ffe",
+      "name": "HTTP Request: Resibo extract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Set: config').first().json.resibo_url }}/api/extract",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Resibo API key"
+        }
+      },
+      "retryOnFail": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "da8ff717-51a4-5340-a3ac-b2b7726030db",
+      "name": "Split Out: invoices",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        80
+      ],
+      "parameters": {
+        "fieldToSplitOut": "invoices",
+        "options": {}
+      }
+    },
+    {
+      "id": "fe852786-927a-5746-9834-2721808216f2",
+      "name": "Set: map columns",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1340,
+        80
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1920de11-6b85-55f3-a916-b3cf0e9ecf3e",
+              "name": "ID",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "02c4ae04-4b5a-5b1f-be96-3a38da01934a",
+              "name": "Status",
+              "value": "={{ $json.status }}",
+              "type": "string"
+            },
+            {
+              "id": "9766cae8-afce-5331-bb1e-881e916954c2",
+              "name": "Flags",
+              "value": "={{ $json.flags.map(f => f.message).join('; ') }}",
+              "type": "string"
+            },
+            {
+              "id": "cf6a14d1-ee1c-5902-b9c5-55201d477570",
+              "name": "Document Type",
+              "value": "={{ $json.document_type }}",
+              "type": "string"
+            },
+            {
+              "id": "6cc89aeb-b0b7-591f-9256-a994f436a415",
+              "name": "Seller",
+              "value": "={{ $json.seller_name }}",
+              "type": "string"
+            },
+            {
+              "id": "cec5eb6a-921e-57ce-bbda-439b2281712d",
+              "name": "Seller TIN",
+              "value": "={{ $json.seller_tin }}",
+              "type": "string"
+            },
+            {
+              "id": "28aec533-9e79-5355-ab0a-fb4c479e0f08",
+              "name": "Buyer",
+              "value": "={{ $json.buyer_name }}",
+              "type": "string"
+            },
+            {
+              "id": "fb8d6a03-dd7e-5c88-be21-1124c97033d6",
+              "name": "Buyer TIN",
+              "value": "={{ $json.buyer_tin }}",
+              "type": "string"
+            },
+            {
+              "id": "2f63ba0a-9972-5d4c-b150-980e4d4b3259",
+              "name": "Invoice No.",
+              "value": "={{ $json.invoice_number }}",
+              "type": "string"
+            },
+            {
+              "id": "52fd6834-376c-5bf6-860c-dd76cfdb6ecc",
+              "name": "Invoice Date",
+              "value": "={{ $json.invoice_date }}",
+              "type": "string"
+            },
+            {
+              "id": "54ce2a4e-c2f1-585b-9b32-21a59530e842",
+              "name": "Due Date",
+              "value": "={{ $json.due_date }}",
+              "type": "string"
+            },
+            {
+              "id": "b15ee42b-b94c-5d0e-8d12-310ca58d1483",
+              "name": "Currency",
+              "value": "={{ $json.currency }}",
+              "type": "string"
+            },
+            {
+              "id": "d7d7db8c-0751-58c3-bf45-03bf1ae7f346",
+              "name": "VATable Sales",
+              "value": "={{ $json.vatable_sales }}",
+              "type": "string"
+            },
+            {
+              "id": "104b79c1-d229-5213-af76-095758703c94",
+              "name": "VAT-Exempt",
+              "value": "={{ $json.vat_exempt_sales }}",
+              "type": "string"
+            },
+            {
+              "id": "a982b7f9-c8d8-52f0-b289-ce22c1d64ae0",
+              "name": "Zero-Rated",
+              "value": "={{ $json.zero_rated_sales }}",
+              "type": "string"
+            },
+            {
+              "id": "a45fbf77-3db7-54b7-b116-6154ca09ee10",
+              "name": "Subtotal",
+              "value": "={{ $json.subtotal }}",
+              "type": "string"
+            },
+            {
+              "id": "7b070fcf-c392-5654-a287-be42641e106d",
+              "name": "VAT",
+              "value": "={{ $json.vat_amount }}",
+              "type": "string"
+            },
+            {
+              "id": "c14e232b-d390-53df-971d-5dbbeccb7a87",
+              "name": "Discount",
+              "value": "={{ $json.discount }}",
+              "type": "string"
+            },
+            {
+              "id": "05c2df43-eb40-5ba0-964f-5f96f3fa8427",
+              "name": "Withholding Tax",
+              "value": "={{ $json.withholding_tax }}",
+              "type": "string"
+            },
+            {
+              "id": "be9f389c-72f5-5503-ba89-27a780361264",
+              "name": "Total",
+              "value": "={{ $json.total_amount }}",
+              "type": "string"
+            },
+            {
+              "id": "3d573452-fab7-5988-9d84-17970303b143",
+              "name": "Payment Terms",
+              "value": "={{ $json.payment_terms }}",
+              "type": "string"
+            },
+            {
+              "id": "c288969e-43d8-59cf-ad0b-ac516c5c1d00",
+              "name": "Payment Method",
+              "value": "={{ $json.payment_method }}",
+              "type": "string"
+            },
+            {
+              "id": "e07a6643-cecf-51ea-b8e4-db387a299b17",
+              "name": "Pages",
+              "value": "={{ $json.source_pages.join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "bf21902e-0a92-5a54-bad6-492baa7a3afb",
+              "name": "Uncertain Fields",
+              "value": "={{ $json.uncertain_fields.join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "ffebd2a2-1620-566c-a87d-ae1921cf5fa4",
+              "name": "Notes",
+              "value": "={{ $json.extraction_notes }}",
+              "type": "string"
+            },
+            {
+              "id": "1d7a6003-3257-5a39-90a1-b2a758fb0321",
+              "name": "Source File",
+              "value": "={{ $('Google Drive Trigger').first().json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "7186f59f-071e-529a-89ff-df3390a234ae",
+              "name": "Drive Link",
+              "value": "={{ $('Google Drive Trigger').first().json.webViewLink }}",
+              "type": "string"
+            },
+            {
+              "id": "dcc2b660-da14-51d3-8380-b8b4cec24964",
+              "name": "Batch ID",
+              "value": "={{ $('HTTP Request: Resibo extract').first().json.batch_id }}",
+              "type": "string"
+            },
+            {
+              "id": "d7133b7e-66c0-51da-8959-32995438f478",
+              "name": "Processed At",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d9772c00-0738-5acc-92f1-f48de3f729fb",
+      "name": "Google Sheets: Append invoices",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1560,
+        80
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Set: config').first().json.sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Invoices"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "e37de2bc-4d8e-5708-a849-c00505262ea5",
+      "name": "Code: build summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        280
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const batch = $('HTTP Request: Resibo extract').first().json;\nconst file = $('Google Drive Trigger').first().json;\nconst cfg = $('Set: config').first().json;\nconst s = batch.summary;\nconst flagged = batch.invoices.filter((inv) => inv.status !== 'OK');\nconst needsReview = s.documents === 0 || flagged.length > 0;\nconst subject = s.documents === 0\n  ? `Resibo: no invoices found — ${file.name}`\n  : `Resibo: ${s.documents} documents processed, ${s.review + s.error} need review — ${file.name}`;\nconst totals = Object.entries(s.total_amount_by_currency)\n  .map(([currency, value]) => `${currency} ${value.toFixed(2)}`)\n  .join(', ') || 'n/a';\nconst flaggedLines = flagged.map((inv) =>\n  `- ${inv.id} ${inv.seller_name ?? 'unknown seller'} (${inv.status}): ` +\n  inv.flags.map((flag) => flag.message).join('; '));\nconst body = [\n  `File: ${file.name}`,\n  `Documents: ${s.documents} (OK ${s.ok}, Review ${s.review}, Error ${s.error})`,\n  `Total: ${totals}`,\n  '',\n  flaggedLines.length ? 'Needs attention:' : 'Nothing needs attention.',\n  ...flaggedLines,\n  '',\n  `Sheet: https://docs.google.com/spreadsheets/d/${cfg.sheet_id}`,\n  `Excel download (valid for 60 minutes): ${cfg.public_url}${batch.downloads.xlsx}`,\n  `Original file: ${file.webViewLink}`,\n].join('\\n');\nreturn [{ json: { subject, body, needsReview, documents: s.documents } }];\n"
+      }
+    },
+    {
+      "id": "eba7fcd2-d6ac-5e77-9709-83172729f16d",
+      "name": "Gmail: Send summary",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1340,
+        280
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Set: config').first().json.notify_email }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "id": "6fae3476-5414-5662-bd1a-54fa159c1d81",
+      "name": "IF: documents == 0 or any REVIEW/ERROR",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1560,
+        280
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "417d36fc-cb1b-50b5-a47a-fd9b9b0c42d3",
+              "leftValue": "={{ $('Code: build summary').first().json.needsReview }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "1acd5ea6-20c2-503a-8762-364b3a3f240f",
+      "name": "Google Drive: Move to Needs Review",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1780,
+        200
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Google Drive Trigger').first().json.id }}"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Needs Review"
+        }
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "id": "ef609041-ce73-586a-b36d-e16893a7f997",
+      "name": "Google Drive: Move to Processed",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1780,
+        360
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Google Drive Trigger').first().json.id }}"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Processed"
+        }
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "id": "48155385-e426-5caa-a878-dd2a0d6b342f",
+      "name": "Gmail: Resibo failed",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1120,
+        500
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Set: config').first().json.notify_email }}",
+        "subject": "=Resibo failed for {{ $('Google Drive Trigger').first().json.name }}: {{ $json.error?.message ?? 'unknown error' }}",
+        "emailType": "text",
+        "message": "=Resibo could not process {{ $('Google Drive Trigger').first().json.name }}.\n\nError: {{ $json.error?.message ?? 'unknown error' }}\n\nThe file was moved to Needs Review.",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "id": "71e77e51-29d9-5a7a-bf90-7c3a81f272bd",
+      "name": "Google Drive: Move (failed)",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1340,
+        500
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Google Drive Trigger').first().json.id }}"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Needs Review"
+        }
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set: config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: config": {
+      "main": [
+        [
+          {
+            "node": "IF: is PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: is PDF": {
+      "main": [
+        [
+          {
+            "node": "Google Drive: Download file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Drive: Move (not a PDF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive: Download file": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request: Resibo extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request: Resibo extract": {
+      "main": [
+        [
+          {
+            "node": "Split Out: invoices",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code: build summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail: Resibo failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out: invoices": {
+      "main": [
+        [
+          {
+            "node": "Set: map columns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: map columns": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Append invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: build summary": {
+      "main": [
+        [
+          {
+            "node": "Gmail: Send summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail: Send summary": {
+      "main": [
+        [
+          {
+            "node": "IF: documents == 0 or any REVIEW/ERROR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: documents == 0 or any REVIEW/ERROR": {
+      "main": [
+        [
+          {
+            "node": "Google Drive: Move to Needs Review",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Drive: Move to Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail: Resibo failed": {
+      "main": [
+        [
+          {
+            "node": "Google Drive: Move (failed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}
