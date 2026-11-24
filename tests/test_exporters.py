@@ -29,6 +29,7 @@ from resibo.models import (
     Severity,
     Status,
     build_batch,
+    summarize,
 )
 
 EXPIRES = datetime(2026, 11, 24, 5, 0, tzinfo=UTC)
@@ -164,7 +165,13 @@ def test_summary_sheet():
     assert cells["Processed at"] == "2026-11-23 12:30 (Asia/Manila)"
     assert cells["Documents found"] == 3 and cells["OK"] == 1
     assert cells["Review"] == 1 and cells["Error"] == 1
-    assert cells["Total (PHP)"] == pytest.approx(11200 + 55 + 1300)
+    assert cells["Total, excluding errors (PHP)"] == pytest.approx(11200 + 55)
+    assert cells["Total, all documents (PHP)"] == pytest.approx(11200 + 55 + 1300)
+    assert "Total (PHP)" not in cells
+    assert (
+        cells["1 error rows are kept on the Invoices sheet so you can check or delete them."]
+        is None
+    )
     assert cells["Input tokens"] == 2000
     header_row = next(r for r in range(1, ws.max_row + 1) if ws.cell(r, 1).value == "Invoice ID")
     assert [c.value for c in ws[header_row]][:5] == [
@@ -172,6 +179,55 @@ def test_summary_sheet():
     ]  # fmt: skip
     assert ws.max_row - header_row == 3  # one row per flag
     assert ws.cell(header_row + 1, 2).value == "LOW_CONFIDENCE"
+
+
+def _batch_without_errors() -> Batch:
+    batch = make_batch()
+    batch.invoices = [i for i in batch.invoices if i.status != Status.ERROR]
+    batch.summary = summarize(batch.invoices)
+    return batch
+
+
+def test_summary_sheet_without_errors_keeps_one_total_row_and_no_note():
+    ws = workbook(_batch_without_errors())["Summary"]
+    labels = [ws.cell(r, 1).value for r in range(1, ws.max_row + 1)]
+    cells = {ws.cell(r, 1).value: ws.cell(r, 2).value for r in range(1, ws.max_row + 1)}
+    assert cells["Total (PHP)"] == pytest.approx(11200 + 55)
+    assert not [label for label in labels if label and "excluding errors" in str(label)]
+    assert not [label for label in labels if label and "error rows are kept" in str(label)]
+
+
+def test_summary_sheet_error_only_currency_shows_zero_in_total_order():
+    batch = make_batch()
+    batch.invoices[2].currency = "USD"
+    batch.invoices[0].currency = "PHP"
+    batch.summary = summarize([batch.invoices[2], batch.invoices[0], batch.invoices[1]])
+    ws = workbook(batch)["Summary"]
+    rows = [(ws.cell(r, 1).value, ws.cell(r, 2).value) for r in range(1, ws.max_row + 1)]
+    totals = [(label, value) for label, value in rows if label and str(label).startswith("Total")]
+    assert [label for label, _ in totals] == [
+        "Total, excluding errors (USD)",
+        "Total, all documents (USD)",
+        "Total, excluding errors (PHP)",
+        "Total, all documents (PHP)",
+    ]
+    assert totals[0][1] == 0 and totals[1][1] == pytest.approx(1300)
+    assert totals[2][1] == pytest.approx(11200 + 55)
+
+
+def test_error_invoices_stay_in_every_sheet_and_both_csvs():
+    batch = make_batch()
+    wb = workbook(batch)
+    invoices = wb["Invoices"]
+    headers = [c.value for c in invoices[1]]
+    error_row = next(r for r in invoices.iter_rows(min_row=2) if r[0].value == "INV-003")
+    assert error_row[headers.index("Status")].value == "ERROR"
+    assert "Computed ₱1,000.00" in str(error_row[headers.index("Flags")].value)
+    rows = parse_csv(to_invoices_csv(batch))
+    error_csv = next(r for r in rows if r[0] == "INV-003")
+    assert error_csv[rows[0].index("Status")] == "ERROR"
+    assert "Computed ₱1,000.00" in error_csv[rows[0].index("Flags")]
+    assert any(r[0] == "INV-003" for r in rows)
 
 
 def parse_csv(data: bytes):

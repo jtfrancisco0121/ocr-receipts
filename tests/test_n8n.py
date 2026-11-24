@@ -1,6 +1,10 @@
 import json
 import re
+import shutil
+import subprocess
 from pathlib import Path
+
+import pytest
 
 from resibo.models import Batch, Downloads, Invoice, Summary, Usage
 
@@ -160,3 +164,102 @@ def test_readme_covers_compose_and_cloud():
         "http://resibo:8000",
     ):
         assert needle in readme
+
+
+# --- the email total (run the Code node in node, with $() stubbed) ------------------------------
+
+_RUNNER = """
+const code = require('fs').readFileSync(process.argv[2], 'utf8');
+const batch = JSON.parse(process.argv[3]);
+const stub = (name) => ({
+  first: () => ({
+    json: name === 'HTTP Request: Resibo extract' ? batch
+      : name === 'Google Drive Trigger' ? { name: 'f.pdf', webViewLink: 'https://drive/f' }
+      : { sheet_id: 'S', public_url: 'https://resibo.example' },
+  }),
+});
+const run = new Function('$', code);
+console.log(JSON.stringify(run(stub)));
+"""
+
+
+def run_summary_node(tmp_path, summary: dict, invoices=()):
+    batch = {
+        "summary": {"documents": 3, "ok": 1, "review": 0, "error": 0, **summary},
+        "invoices": list(invoices),
+        "downloads": {"xlsx": "/api/batches/b/export.xlsx"},
+    }
+    (tmp_path / "node.js").write_text(NODES["Code: build summary"]["parameters"]["jsCode"])
+    (tmp_path / "run.js").write_text(_RUNNER)
+    out = subprocess.run(
+        ["node", str(tmp_path / "run.js"), str(tmp_path / "node.js"), json.dumps(batch)],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    return json.loads(out)[0]["json"]["body"]
+
+
+needs_node = pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+
+
+@needs_node
+def test_email_total_leaves_out_errors_for_the_sample_summary(tmp_path):
+    body = run_summary_node(
+        tmp_path,
+        {
+            "documents": 8,
+            "ok": 5,
+            "review": 1,
+            "error": 2,
+            "total_amount_by_currency": {"PHP": 176100.0},
+            "total_excluding_errors_by_currency": {"PHP": 155640.0},
+        },
+    )
+    assert "Total: PHP 155,640.00 (excludes 2 errors)" in body
+
+
+@needs_node
+def test_email_total_has_no_excludes_part_without_errors(tmp_path):
+    body = run_summary_node(
+        tmp_path,
+        {
+            "total_amount_by_currency": {"PHP": 1200.5},
+            "total_excluding_errors_by_currency": {"PHP": 1200.5},
+        },
+    )
+    assert "Total: PHP 1,200.50\n" in body and "(excludes" not in body
+
+
+@needs_node
+def test_email_total_with_every_invoice_in_error_is_zero_not_na(tmp_path):
+    body = run_summary_node(
+        tmp_path,
+        {
+            "error": 3,
+            "total_amount_by_currency": {"PHP": 900.0},
+            "total_excluding_errors_by_currency": {},
+        },
+    )
+    assert "Total: PHP 0.00 (excludes 3 errors)" in body and "n/a" not in body
+
+
+@needs_node
+def test_email_total_joins_currencies_and_counts_errors_once(tmp_path):
+    body = run_summary_node(
+        tmp_path,
+        {
+            "error": 1,
+            "total_amount_by_currency": {"USD": 10.0, "PHP": 5000.0},
+            "total_excluding_errors_by_currency": {"PHP": 4000.0},
+        },
+    )
+    assert "Total: USD 0.00, PHP 4,000.00 (excludes 1 error)" in body
+    assert body.count("excludes") == 1
+
+
+@needs_node
+def test_email_total_falls_back_on_a_server_without_the_new_field(tmp_path):
+    body = run_summary_node(tmp_path, {"error": 2, "total_amount_by_currency": {"PHP": 176100.0}})
+    assert "Total: PHP 176100.00\n" in body
+    assert "(excludes" not in body and "PHP 0.00" not in body

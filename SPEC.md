@@ -267,7 +267,8 @@ All money values are `Decimal` (quantized to 2 places) serialized as JSON number
   "cached": false,
   "summary": {
     "documents": 5, "ok": 3, "review": 2, "error": 0,
-    "total_amount_by_currency": { "PHP": 48210.50 }
+    "total_amount_by_currency": { "PHP": 48210.50 },
+    "total_excluding_errors_by_currency": { "PHP": 48210.50 }
   },
   "invoices": [ /* Invoice objects with id, status, flags */ ],
   "downloads": {
@@ -490,7 +491,7 @@ Columns in order: ID, Status, Flags, Document Type, Seller, Seller TIN, Buyer, B
 Columns: Invoice ID, Invoice No., Seller, Line #, Description, Qty, Unit, Unit Price, Amount.
 
 **Sheet 3 — Summary**
-- File name, processed at (Asia/Manila), model, page count, documents found, OK / Review / Error counts, total amount per currency, tokens used, estimated cost.
+- File name, processed at (Asia/Manila), model, page count, documents found, OK / Review / Error counts, total amount per currency, tokens used, estimated cost. When any invoice is ERROR, each currency has two rows, "Total, excluding errors (CUR)" and "Total, all documents (CUR)", then a note that the ERROR rows are kept on the Invoices sheet; with no ERROR invoices there is a single "Total (CUR)" row.
 - A "Flags" table below: Invoice ID, Code, Severity, Field, Message.
 
 **Formatting**

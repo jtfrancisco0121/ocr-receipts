@@ -238,7 +238,23 @@ def _write_summary(ws, batch: Batch, processed_at: datetime) -> None:
         ("Error", s.error, None),
     ]
     for currency, total in s.total_amount_by_currency.items():
-        rows.append((f"Total ({safe_text(currency)})", float(total), MONEY_FORMAT))
+        label = safe_text(currency)
+        if s.error > 0:
+            # ERROR rows stay in every sheet, but the headline total leaves them out
+            without_errors = s.total_excluding_errors_by_currency.get(currency, 0)
+            rows.append((f"Total, excluding errors ({label})", float(without_errors), MONEY_FORMAT))
+            rows.append((f"Total, all documents ({label})", float(total), MONEY_FORMAT))
+        else:
+            rows.append((f"Total ({label})", float(total), MONEY_FORMAT))
+    if s.error > 0:
+        rows.append(
+            (
+                f"{s.error} error rows are kept on the Invoices sheet "
+                "so you can check or delete them.",
+                None,
+                None,
+            )
+        )
     rows += [
         ("Input tokens", u.input_tokens, "#,##0"),
         ("Output tokens", u.output_tokens, "#,##0"),

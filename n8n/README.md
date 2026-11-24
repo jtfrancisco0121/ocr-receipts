@@ -40,7 +40,13 @@ The workflow reads these fields of the Resibo batch JSON (the frozen response sh
 `POST /api/extract`): `batch_id`, `invoices[]` (`id`, `status`, `flags[].message`,
 `seller_name`, `invoice_number`, `invoice_date`, `total_amount`, ...), `summary.documents`,
 `summary.ok`, `summary.review`, `summary.error`, `summary.total_amount_by_currency`,
-`downloads.xlsx`.
+`summary.total_excluding_errors_by_currency`, `downloads.xlsx`.
+
+The email total leaves out ERROR invoices ("Total: PHP 155,640.00 (excludes 2 errors)"). It reads
+`summary.total_excluding_errors_by_currency`, so **re-import** `resibo-drive-to-sheets.json` after
+upgrading Resibo to get it. An older copy of the workflow keeps working: it reads
+`summary.total_amount_by_currency` and shows the total of all documents.
+Against a Resibo server that predates the field, the new workflow falls back to that older line.
 
 ## 1. Run n8n
 
