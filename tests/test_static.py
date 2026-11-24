@@ -19,6 +19,7 @@ LANDING = (STATIC / "landing.html").read_text(encoding="utf-8")
 JS = (STATIC / "app.js").read_text(encoding="utf-8")
 CSS = (STATIC / "styles.css").read_text(encoding="utf-8")
 THEME = (STATIC / "theme.css").read_text(encoding="utf-8")
+THEME_JS = (STATIC / "theme.js").read_text(encoding="utf-8")
 
 # every element the SPEC.md section 12 layout needs
 REQUIRED_IDS = [
@@ -48,6 +49,7 @@ def test_index_and_assets_are_served_under_the_strict_csp(client):
         ("/static/app.js", "javascript"),
         ("/static/styles.css", "text/css"),
         ("/static/theme.css", "text/css"),
+        ("/static/theme.js", "javascript"),
     ):
         r = client.get(path)
         assert r.status_code == 200, path
@@ -72,6 +74,12 @@ def test_every_section_12_element_id_exists():
 
 
 def test_javascript_never_inserts_html():
+    for js in (JS, THEME_JS):
+        _assert_no_html_insertion(js)
+    assert "textContent" in JS
+
+
+def _assert_no_html_insertion(js):
     for banned in (
         "innerHTML",
         "outerHTML",
@@ -80,8 +88,7 @@ def test_javascript_never_inserts_html():
         "eval(",
         "new Function",
     ):
-        assert banned not in JS, banned
-    assert "textContent" in JS
+        assert banned not in js, banned
 
 
 class _Inspector(HTMLParser):
@@ -91,7 +98,9 @@ class _Inspector(HTMLParser):
         self.style_attrs = 0
         self.handler_attrs = 0
         self.script_srcs: list[str] = []
+        self.head_scripts: list[tuple[str, bool]] = []  # (src, deferred) of scripts inside <head>
         self._in_script = False
+        self._in_head = False
 
     def handle_starttag(self, tag, attrs):
         names = [name for name, _ in attrs]
@@ -100,10 +109,14 @@ class _Inspector(HTMLParser):
         self.handler_attrs += sum(1 for n in names if n.startswith("on"))
         if tag == "style":
             self.style_attrs += 1
+        if tag == "head":
+            self._in_head = True
         if tag == "script":
             src = dict(attrs).get("src")
             if src:
                 self.script_srcs.append(src)
+                if self._in_head:
+                    self.head_scripts.append((src, "defer" in names))
             else:
                 self._in_script = True
 
@@ -112,6 +125,8 @@ class _Inspector(HTMLParser):
             self.inline_scripts += 1
 
     def handle_endtag(self, tag):
+        if tag == "head":
+            self._in_head = False
         if tag == "script":
             self._in_script = False
 
@@ -121,12 +136,14 @@ def test_index_has_no_inline_script_or_style():
     inspector.feed(INDEX)
     assert inspector.inline_scripts == 0
     assert inspector.style_attrs == 0 and inspector.handler_attrs == 0
-    assert inspector.script_srcs == ["/static/app.js"]
+    assert inspector.script_srcs == ["/static/theme.js", "/static/app.js"]
+    assert inspector.head_scripts[0] == ("/static/theme.js", False)  # first, in <head>, no defer
     landing = _Inspector()
     landing.feed(LANDING)
     assert landing.inline_scripts == 0
     assert landing.style_attrs == 0 and landing.handler_attrs == 0
-    assert landing.script_srcs == []
+    assert landing.script_srcs == ["/static/theme.js"]
+    assert landing.head_scripts == [("/static/theme.js", False)]
 
 
 def font_faces() -> list[dict[str, str]]:
@@ -176,6 +193,29 @@ def test_the_mono_stack_draws_the_peso_sign_from_a_shipped_font():
             assert "U+20B1" in face["unicode-range"]
 
 
+def test_theme_storage_access_is_always_inside_try():
+    uses = [m.start() for m in re.finditer(r"localStorage", THEME_JS)]
+    assert uses
+    for pos in uses:
+        before = THEME_JS[:pos]
+        start = before.rfind("try {")
+        assert start != -1
+        depth = 0
+        for ch in before[start:]:
+            depth += (ch == "{") - (ch == "}")
+        assert depth > 0, "localStorage used outside a try block"
+
+
+def test_theme_key_lives_only_in_theme_js_and_both_pages_have_the_toggle():
+    assert "resibo-theme" in THEME_JS
+    for name in ("app.js", "common.js", "landing.js"):
+        path = STATIC / name
+        if path.exists():
+            assert "resibo-theme" not in path.read_text(encoding="utf-8")
+    for page in (INDEX, LANDING):
+        assert 'id="theme-toggle"' in page
+
+
 def test_nothing_is_loaded_from_another_origin():
     for page in (INDEX, LANDING):
         assert not re.findall(
@@ -183,7 +223,7 @@ def test_nothing_is_loaded_from_another_origin():
         )
     for css in (CSS, THEME):
         assert "@import" not in css and "url(http" not in css and "//" not in css.replace("/*", "")
-    assert 'fetch("http' not in JS
+    assert 'fetch("http' not in JS and "http" not in THEME_JS
 
 
 def light_tokens() -> dict[str, str]:
@@ -351,4 +391,5 @@ def test_layout_is_responsive_to_360px():
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
 def test_app_js_parses():
-    subprocess.run(["node", "--check", str(STATIC / "app.js")], check=True)
+    for name in ("app.js", "theme.js"):
+        subprocess.run(["node", "--check", str(STATIC / name)], check=True)
