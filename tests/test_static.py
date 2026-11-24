@@ -485,3 +485,18 @@ def test_counts_chips_and_announcer_use_the_summary_numbers():
     assert "countByStatus" not in JS  # chips are not recounted from the invoices
     for count_id in ("count-ok", "count-review", "count-error"):
         assert f'$("{count_id}")' in JS
+
+
+def test_flag_reasons_are_visible_at_every_width():
+    assert ".tooltip" not in CSS and "tooltip" not in JS
+    assert ".flag-note" in CSS
+    # no media query hides the flag note
+    for query in re.findall(r"@media[^{]*\{((?:[^{}]*\{[^{}]*\})*)\s*\}", CSS):
+        for selector, body in re.findall(r"([^{}]+)\{([^{}]*)\}", query):
+            if "flag-note" in selector:
+                assert "display: none" not in body and "visibility: hidden" not in body
+    assert not re.search(r"\.flag-note[^{]*\{[^}]*display:\s*none", CSS)
+    for field in ("total_amount", "invoice_number", "invoice_date", "seller_name", "vat_amount"):
+        assert f'"{field}"' in JS, field
+    assert "flagged-field" in JS and "flagged-field" in CSS and "wavy" in CSS
+    assert '" more"' in JS and '" +"' in JS

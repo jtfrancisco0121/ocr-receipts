@@ -162,36 +162,34 @@
     });
   }
 
-  function flagMessages(inv) {
-    return inv.flags.map(function (flag) { return flag.message; });
+  // The five fields that have a column; a flag on one of them marks that cell.
+  var MARKED_FIELDS = ["total_amount", "invoice_number", "invoice_date", "seller_name", "vat_amount"];
+
+  function flaggedFields(inv) {
+    var marked = {};
+    inv.flags.forEach(function (flag) {
+      if (MARKED_FIELDS.indexOf(flag.field) !== -1) marked[flag.field] = true;
+    });
+    return marked;
+  }
+
+  function cellClass(base, marked, field) {
+    var names = [base, marked[field] ? "flagged-field" : ""].filter(Boolean);
+    return names.join(" ");
+  }
+
+  // The first flag message shows under the seller at every width; more flags show as "+N more".
+  function flagNote(inv) {
+    if (!inv.flags.length) return null;
+    var more = inv.flags.length - 1;
+    return el("p", {
+      className: "flag-note",
+      text: inv.flags[0].message + (more > 0 ? " +" + more + " more" : ""),
+    });
   }
 
   function flagCell(inv) {
-    var cell = el("td");
-    if (!inv.flags.length) {
-      cell.textContent = "—";
-      return cell;
-    }
-    var wrap = el("span", { className: "flag-wrap" });
-    var pill = el("span", {
-      className: "flag-pill",
-      text: plural(inv.flags.length, "flag", "flags"),
-      attrs: { tabindex: "0" },
-    });
-    var tip = el(
-      "div",
-      { className: "tooltip", attrs: { role: "tooltip" } },
-      flagMessages(inv).map(function (message) { return el("p", { text: message }); }),
-    );
-    pill.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") wrap.classList.add("dismissed");
-    });
-    pill.addEventListener("blur", function () { wrap.classList.remove("dismissed"); });
-    wrap.addEventListener("mouseleave", function () { wrap.classList.remove("dismissed"); });
-    wrap.appendChild(pill);
-    wrap.appendChild(tip);
-    cell.appendChild(wrap);
-    return cell;
+    return el("td", { className: "num", text: inv.flags.length ? String(inv.flags.length) : "—" });
   }
 
   function detailRow(inv, id) {
@@ -261,6 +259,7 @@
     rows.forEach(function (inv) {
       var detailId = "detail-" + inv.id;
       var open = !!state.expanded[inv.id];
+      var marked = flaggedFields(inv);
       var tr = el(
         "tr",
         {
@@ -271,11 +270,20 @@
           el("td", {}, [
             el("span", { className: "badge badge-" + inv.status.toLowerCase(), text: inv.status }),
           ]),
-          el("td", { text: dash(inv.seller_name) }),
-          el("td", { text: dash(inv.invoice_number) }),
-          el("td", { text: dash(inv.invoice_date) }),
-          el("td", { className: "num", text: formatMoney(inv.vat_amount, inv.currency) }),
-          el("td", { className: "num", text: formatMoney(inv.total_amount, inv.currency) }),
+          el("td", { className: cellClass("", marked, "seller_name") }, [
+            el("span", { className: "seller-name", text: dash(inv.seller_name) }),
+            flagNote(inv),
+          ]),
+          el("td", { className: cellClass("mono", marked, "invoice_number"), text: dash(inv.invoice_number) }),
+          el("td", { className: cellClass("mono", marked, "invoice_date"), text: dash(inv.invoice_date) }),
+          el("td", {
+            className: cellClass("num mono", marked, "vat_amount"),
+            text: formatMoney(inv.vat_amount, inv.currency),
+          }),
+          el("td", {
+            className: cellClass("num mono", marked, "total_amount"),
+            text: formatMoney(inv.total_amount, inv.currency),
+          }),
           el("td", { className: "mono", text: formatPages(inv.source_pages) }),
           flagCell(inv),
         ],
