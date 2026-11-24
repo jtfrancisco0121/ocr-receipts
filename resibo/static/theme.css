@@ -1,0 +1,80 @@
+/* Carbon theme: the only file with colour values. Shared by the landing page and the app.
+   Light tokens on :root; the dark set appears twice (explicit choice, and the OS preference when
+   no choice is saved) and both copies must stay identical (tests/test_static.py checks it). */
+:root {
+  --paper: #FDFDFB;
+  --band: #F6EBAE;
+  --ink: #1F2A7A;
+  --ink-2: #4E5687;
+  --rule: #CED2E6;
+  --red: #C41C2A;
+  --btn: #1F2A7A;
+  --btn-fg: #FDFDFB;
+  --status-ok-bg: #C6EFCE;
+  --status-ok-fg: #006100;
+  --status-review-bg: #FFEB9C;
+  --status-review-fg: #9C5700;
+  --status-error-bg: #FFC7CE;
+  --status-error-fg: #9C0006;
+  --row-tint-review: #FFF8E1;
+  --row-tint-error: #FDECEE;
+  --banner-error-bg: #FDECEE;
+  --banner-error-border: #C41C2A;
+  --banner-error-fg: #9C0006;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: #111331;
+  --band: #1A1D47;
+  --ink: #DCDFF6;
+  --ink-2: #9EA3D1;
+  --rule: #2C3066;
+  --red: #FF6B76;
+  --btn: #F2E27A;
+  --btn-fg: #111331;
+  --status-ok-bg: rgba(127, 214, 154, .12);
+  --status-ok-fg: #7FD69A;
+  --status-review-bg: rgba(242, 194, 90, .12);
+  --status-review-fg: #F2C25A;
+  --status-error-bg: rgba(255, 107, 118, .15);
+  --status-error-fg: #FF7D87;
+  --row-tint-review: rgba(242, 194, 90, .06);
+  --row-tint-error: #2A1736;
+  --banner-error-bg: #2A1736;
+  --banner-error-border: #FF6B76;
+  --banner-error-fg: #FF7D87;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111331;
+    --band: #1A1D47;
+    --ink: #DCDFF6;
+    --ink-2: #9EA3D1;
+    --rule: #2C3066;
+    --red: #FF6B76;
+    --btn: #F2E27A;
+    --btn-fg: #111331;
+    --status-ok-bg: rgba(127, 214, 154, .12);
+    --status-ok-fg: #7FD69A;
+    --status-review-bg: rgba(242, 194, 90, .12);
+    --status-review-fg: #F2C25A;
+    --status-error-bg: rgba(255, 107, 118, .15);
+    --status-error-fg: #FF7D87;
+    --row-tint-review: rgba(242, 194, 90, .06);
+    --row-tint-error: #2A1736;
+    --banner-error-bg: #2A1736;
+    --banner-error-border: #FF6B76;
+    --banner-error-fg: #FF7D87;
+    color-scheme: dark;
+  }
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
