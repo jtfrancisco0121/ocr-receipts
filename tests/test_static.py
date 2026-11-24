@@ -500,3 +500,39 @@ def test_flag_reasons_are_visible_at_every_width():
         assert f'"{field}"' in JS, field
     assert "flagged-field" in JS and "flagged-field" in CSS and "wavy" in CSS
     assert '" more"' in JS and '" +"' in JS
+
+
+def flag_codes_in_spec() -> list[str]:
+    spec = (STATIC.parent.parent / "SPEC.md").read_text(encoding="utf-8")
+    section = spec[spec.index("## 9. Validation rules") : spec.index("## 10. Exports")]
+    return re.findall(r"^\| `([A-Z_]+)` \|", section, re.M)
+
+
+def flag_sentences() -> dict[str, str]:
+    block = COMMON_JS[COMMON_JS.index("var FLAG_SENTENCES") :]
+    block = block[: block.index("};")]
+    return dict(re.findall(r'"([A-Z_]+)":\s*"([^"]*)"', block))
+
+
+def test_flag_sentences_cover_exactly_the_spec_codes():
+    codes = flag_codes_in_spec()
+    assert len(codes) == 15
+    assert list(flag_sentences()) == codes
+    assert all(sentence.endswith(".") for sentence in flag_sentences().values())
+
+
+def test_rows_look_expandable_and_flags_come_before_line_items():
+    assert "aria-expanded" in JS and "chevron" in JS and 'aria-hidden": "true"' in JS
+    detail = JS[JS.index("function detailRow") : JS.index("function renderTable")]
+    assert detail.index('"Flags"') < detail.index('"Line items"') < detail.index('"Notes"')
+    block = re.search(r"@media \(prefers-reduced-motion: reduce\) \{[^}]*\.chevron[^}]*\}", CSS)
+    assert block and "transition: none" in block.group(0)
+    assert 'tr.row[aria-expanded="true"] .chevron' in CSS
+    assert ".detail td { background: var(--band); }" in CSS
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_flag_sentences_are_reachable_through_window_resibo():
+    harness = COMMON_HARNESS % str(STATIC / "common.js")
+    out = run_node(harness + "console.log(Object.keys(R.FLAG_SENTENCES).length);")
+    assert out == "15"

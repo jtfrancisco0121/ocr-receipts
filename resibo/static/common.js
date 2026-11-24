@@ -93,6 +93,26 @@
     });
   }
 
+  // One plain sentence for each flag code of SPEC.md section 9. The server's Flag has no title
+  // field, so the sentences live here, in the UI only. The landing page lists the same ones.
+  var FLAG_SENTENCES = {
+    "MISSING_REQUIRED": "A field this type of document needs is missing.",
+    "TOTAL_MISMATCH": "The total does not equal the sales, VAT and any discount added up.",
+    "VAT_MISMATCH": "The VAT is not 12% of the vatable sales.",
+    "LINE_ITEMS_MISMATCH": "The line items do not add up to the document totals.",
+    "LINE_ITEM_MATH": "A line quantity times its unit price does not equal its amount.",
+    "DUPLICATE": "The same invoice number from the same seller appears earlier in this batch.",
+    "POSSIBLE_DUPLICATE": "Another invoice has the same seller, date and total.",
+    "TIN_FORMAT": "The seller TIN does not have 9, 12 or 14 digits.",
+    "FUTURE_DATE": "The invoice date is in the future.",
+    "OLD_DATE": "The invoice date is more than 5 years ago.",
+    "DUE_BEFORE_ISSUE": "The due date is before the invoice date.",
+    "NEGATIVE_AMOUNT": "An amount on the document is negative.",
+    "LOW_CONFIDENCE": "The reader was unsure about some fields. Please check them.",
+    "INCOMPLETE_DOCUMENT": "The document looks cut off or incomplete.",
+    "SPLIT_ACROSS_CHUNKS": "The document was split between two reads and may be incomplete."
+  };
+
   window.Resibo = {
     el: el,
     clear: clear,
@@ -102,5 +122,6 @@
     formatPages: formatPages,
     plural: plural,
     totalLines: totalLines,
+    FLAG_SENTENCES: FLAG_SENTENCES,
   };
 })();

@@ -138,7 +138,21 @@ body {
 }
 .flagged-field { text-decoration: underline wavy var(--red); text-underline-offset: 3px; }
 
-.detail td { background: var(--paper); }
+.chevron-cell { width: 1%; padding-right: 0 !important; }
+.chevron {
+  display: inline-block; width: 8px; height: 8px; margin-top: 6px;
+  border-right: 2px solid var(--ink-2); border-bottom: 2px solid var(--ink-2);
+  transform: rotate(-45deg); transition: transform 0.15s;
+}
+.table tbody tr.row[aria-expanded="true"] .chevron { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) { .chevron { transition: none; } }
+
+.detail td { background: var(--band); }
+.flag-list { list-style: none; padding-left: 0 !important; display: flex; flex-direction: column; gap: 8px; }
+.flag-item p { margin: 0; }
+.flag-sentence { font-weight: 600; }
+.flag-message { color: var(--red); font-family: var(--font-mono); font-size: 12px; }
+.flag-code { color: var(--ink-2); font-size: 12px; }
 .detail h3 { margin: 8px 0 4px; font-size: 13px; }
 .detail ul { margin: 0; padding-left: 18px; }
 .inner { width: 100%; border-collapse: collapse; font-size: 13px; }

@@ -192,44 +192,46 @@
     return el("td", { className: "num", text: inv.flags.length ? String(inv.flags.length) : "—" });
   }
 
+  function flagItem(flag) {
+    var sentence = R.FLAG_SENTENCES[flag.code];
+    return el("li", { className: "flag-item" }, [
+      sentence ? el("p", { className: "flag-sentence", text: sentence }) : null,
+      el("p", { className: "flag-message", text: flag.message }),
+      el("p", { className: "flag-code mono", text: flag.code }),
+    ]);
+  }
+
+  function lineItemsTable(inv) {
+    var head = el("tr", {}, ["#", "Description", "Qty", "Unit", "Unit price", "Amount"].map(
+      function (name, index) {
+        return el("th", { text: name, attrs: { scope: "col" }, className: index >= 2 && index !== 3 ? "num" : "" });
+      },
+    ));
+    var rows = inv.line_items.map(function (item, index) {
+      return el("tr", {}, [
+        el("td", { text: String(index + 1) }),
+        el("td", { text: dash(item.description) }),
+        el("td", { text: dash(item.quantity), className: "num" }),
+        el("td", { text: dash(item.unit) }),
+        el("td", { text: formatMoney(item.unit_price, inv.currency), className: "num mono" }),
+        el("td", { text: formatMoney(item.amount, inv.currency), className: "num mono" }),
+      ]);
+    });
+    return el("table", { className: "inner" }, [el("thead", {}, [head]), el("tbody", {}, rows)]);
+  }
+
+  // Flags first (why the row was marked), then the line items, then the notes.
   function detailRow(inv, id) {
-    var td = el("td", { attrs: { colspan: "8" } });
+    var td = el("td", { attrs: { colspan: "9" } });
+    if (inv.flags.length) {
+      td.appendChild(el("h3", { text: "Flags" }));
+      td.appendChild(el("ul", { className: "flag-list" }, inv.flags.map(flagItem)));
+    }
     td.appendChild(el("h3", { text: "Line items" }));
     if (!inv.line_items.length) {
       td.appendChild(el("p", { className: "small muted", text: "No line items" }));
     } else {
-      var head = el("tr", {}, ["#", "Description", "Qty", "Unit", "Unit price", "Amount"].map(
-        function (name, index) {
-          return el("th", { text: name, attrs: { scope: "col" }, className: index >= 2 && index !== 3 ? "num" : "" });
-        },
-      ));
-      var rows = inv.line_items.map(function (item, index) {
-        return el("tr", {}, [
-          el("td", { text: String(index + 1) }),
-          el("td", { text: dash(item.description) }),
-          el("td", { text: dash(item.quantity), className: "num" }),
-          el("td", { text: dash(item.unit) }),
-          el("td", { text: formatMoney(item.unit_price, inv.currency), className: "num" }),
-          el("td", { text: formatMoney(item.amount, inv.currency), className: "num" }),
-        ]);
-      });
-      td.appendChild(
-        el("table", { className: "inner" }, [el("thead", {}, [head]), el("tbody", {}, rows)]),
-      );
-    }
-    if (inv.flags.length) {
-      td.appendChild(el("h3", { text: "Flags" }));
-      td.appendChild(
-        el(
-          "ul",
-          {},
-          inv.flags.map(function (flag) {
-            return el("li", {
-              text: flag.severity.toUpperCase() + " · " + flag.code + " · " + flag.message,
-            });
-          }),
-        ),
-      );
+      td.appendChild(lineItemsTable(inv));
     }
     if (inv.extraction_notes) {
       td.appendChild(el("h3", { text: "Notes" }));
@@ -267,6 +269,9 @@
           attrs: { tabindex: "0", "aria-expanded": open ? "true" : "false", "aria-controls": detailId },
         },
         [
+          el("td", { className: "chevron-cell" }, [
+            el("span", { className: "chevron", attrs: { "aria-hidden": "true" } }),
+          ]),
           el("td", {}, [
             el("span", { className: "badge badge-" + inv.status.toLowerCase(), text: inv.status }),
           ]),
