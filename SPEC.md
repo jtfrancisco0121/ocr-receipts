@@ -560,9 +560,9 @@ Single page, no framework, no build step. Must look clean in the demo video.
 
 **Layout (top to bottom)**
 1. Header: "Resibo" + one-line tagline: "Turn a PDF of invoices into a clean, validated spreadsheet."
-2. Drop zone: drag-and-drop or click to choose; shows file name and page count after selection. Button **Extract**. Secondary button **Try with sample invoices** (calls `/api/sample/result`; instant). Next to it a **Run live** toggle (off by default): when on, the sample button fetches `/api/sample` and submits it to `/api/extract` like an upload. A "View sample PDF" link opens `/api/sample`.
+2. Drop zone: drag-and-drop or click to choose; shows file name and page count after selection. With no file chosen **Try with sample invoices** (calls `/api/sample/result`; instant) is the primary button and **Extract** is hidden; once a file is chosen **Extract** is primary. A "View sample PDF" link opens `/api/sample`. There is no Run live toggle: a cached result shows "Recorded run · <date>" (the batch's `recorded_at` in Asia/Manila time) with a **Run it live now** button, which fetches `/api/sample` and submits it to `/api/extract` like an upload. If the recording is missing, the notice "No recorded sample result yet" offers the same **Run it live now** button. `/app#sample` loads the cached sample on open.
 3. Small privacy note: "Files are sent to the Anthropic API for reading and are not stored. Results expire after 60 minutes. Demo limit: 15 pages, 5 live runs per hour."
-   When a cached result is shown, a small label above the results says "Cached result from a live run on <recorded_at> · turn on Run live to process it now".
+   When a cached result is shown, a small label above the results says "Cached result from a live run · use Run it live now to process it again".
 4. Progress state: spinner + "Reading N pages with Claude…" + elapsed seconds. Disable buttons while running.
 5. Results:
    - Summary cards: Documents found · Total (₱) · Needs review · Tokens / est. cost · Time taken.

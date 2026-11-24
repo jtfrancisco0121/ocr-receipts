@@ -26,7 +26,8 @@ COMMON_JS = (STATIC / "common.js").read_text(encoding="utf-8")
 # every element the SPEC.md section 12 layout needs
 REQUIRED_IDS = [
     "title", "tagline",
-    "drop-zone", "file-input", "extract-btn", "sample-btn", "run-live", "sample-pdf-link",
+    "drop-zone", "file-input", "extract-btn", "sample-btn", "run-live-btn", "recorded-run",
+    "sample-missing-live-btn", "sample-pdf-link",
     "privacy-note",
     "progress", "progress-text",
     "error-banner", "error-message", "error-fallback", "error-dismiss",
@@ -370,21 +371,23 @@ def test_spec_strings_are_present():
     ) in INDEX
     labels = [
         "Try with sample invoices",
-        "Run live",
+        "Run it live now",
         "View sample PDF",
         "Download Excel",
         "Download Invoices CSV",
         "Download Line items CSV",
         "Built by Jan Terence Francisco",
         "Show the cached sample instead",
-        "Sample result not recorded yet",
+        "No recorded sample result yet",
     ]
     for text in labels:
         assert text in INDEX, text
-    assert "Cached result from a live run" in JS and "turn on Run live to process it now" in JS
+    assert "Cached result from a live run" in JS and "use Run it live now to process it again" in JS
     assert "Could not reach the server. Check your connection and try again." in JS
     assert "This result has expired. Run the extraction again." in JS
-    assert 'role="switch"' in INDEX and 'aria-checked="false"' in INDEX
+    assert re.search(r'<button id="run-live-btn"[^>]*type="button"', INDEX)
+    assert 'role="switch"' not in INDEX and "aria-checked" not in INDEX
+    assert 'id="run-live"' not in INDEX
 
 
 def test_layout_is_responsive_to_360px():
@@ -536,3 +539,62 @@ def test_flag_sentences_are_reachable_through_window_resibo():
     harness = COMMON_HARNESS % str(STATIC / "common.js")
     out = run_node(harness + "console.log(Object.keys(R.FLAG_SENTENCES).length);")
     assert out == "15"
+
+
+class _Tree(HTMLParser):
+    """Records each element's ancestors' ids, to ask whether one element sits inside another."""
+
+    def __init__(self):
+        super().__init__()
+        self.stack: list[str | None] = []
+        self.found: dict[str, tuple[list, dict]] = {}
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if attrs.get("id"):
+            self.found[attrs["id"]] = ([i for i in self.stack if i], attrs)
+        if tag not in ("br", "input", "meta", "link", "img"):
+            self.stack.append(attrs.get("id"))
+
+    def handle_endtag(self, tag):
+        if self.stack and tag not in ("br", "input", "meta", "link", "img"):
+            self.stack.pop()
+
+
+def test_first_action_is_the_sample_and_the_live_run_stays_reachable():
+    tree = _Tree()
+    tree.feed(INDEX)
+    assert "hidden" in tree.found["extract-btn"][1]
+    assert "btn-primary" in tree.found["sample-btn"][1]["class"]
+    ancestors, attrs = tree.found["sample-missing-live-btn"]
+    assert "sample-missing" in ancestors and "hidden" not in attrs
+    assert "hidden" in tree.found["sample-missing"][1]
+    assert (
+        "<button" in INDEX[INDEX.index('id="run-live-btn"') - 20 : INDEX.index('id="run-live-btn"')]
+    )
+    assert 'location.hash === "#sample"' in JS
+    assert re.search(
+        r'\$\("sample-missing-live-btn"\)\.addEventListener\("click", runSampleLive\)', JS
+    )
+    branch = JS[JS.index('error.code === "SAMPLE_NOT_RECORDED"') :][:200]
+    assert '$("sample-missing").hidden = false' in branch
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_manila_date_in_node_and_its_fallback():
+    harness = COMMON_HARNESS % str(STATIC / "common.js")
+    assert (
+        run_node(harness + 'console.log(R.formatManilaDate("2026-11-23T13:14:12Z"));')
+        == "23 Nov 2026"
+    )
+    # 17:00 UTC is already the next day in Manila (UTC+8)
+    assert (
+        run_node(harness + 'console.log(R.formatManilaDate("2026-11-23T17:00:00Z"));')
+        == "24 Nov 2026"
+    )
+    broken = (
+        "globalThis.Intl = { DateTimeFormat: function () { throw new RangeError('x'); } };\n"
+        + harness
+        + 'console.log(R.formatManilaDate("2026-11-23T13:14:12Z"));'
+    )
+    assert run_node(broken) == "2026-11-23"

@@ -13,7 +13,6 @@
 
   var state = {
     file: null,
-    runLive: false,
     running: false,
     batch: null,
     filter: "ALL",
@@ -37,11 +36,11 @@
 
   function setBusy(busy) {
     state.running = busy;
-    var disabledWhenBusy = ["sample-btn", "run-live"];
+    var disabledWhenBusy = ["sample-btn", "run-live-btn", "sample-missing-live-btn"];
     disabledWhenBusy.forEach(function (id) {
       $(id).disabled = busy;
     });
-    $("extract-btn").disabled = busy || !state.file;
+    updateActions();
     $("drop-zone").setAttribute("aria-disabled", busy ? "true" : "false");
     $("file-input").disabled = busy;
   }
@@ -75,6 +74,15 @@
 
   function hideError() {
     $("error-banner").hidden = true;
+  }
+
+  // With no file chosen the sample button is the first action and Extract is hidden; with a file
+  // chosen Extract is primary and the sample button steps back.
+  function updateActions() {
+    var hasFile = !!state.file;
+    $("extract-btn").hidden = !hasFile;
+    $("extract-btn").disabled = state.running || !hasFile;
+    $("sample-btn").className = "btn " + (hasFile ? "btn-secondary" : "btn-primary");
   }
 
   function hideResults() {
@@ -316,14 +324,19 @@
     state.expanded = {};
     $("sample-missing").hidden = true;
     var label = $("cached-label");
+    var recorded = $("recorded-run");
     if (batch.cached) {
-      var day = batch.recorded_at ? " on " + String(batch.recorded_at).slice(0, 10) : "";
       label.textContent =
-        "Cached result from a live run" + day + " · turn on Run live to process it now";
+        "Cached result from a live run · use Run it live now to process it again";
       label.hidden = false;
+      $("recorded-run-text").textContent = batch.recorded_at
+        ? "Recorded run · " + R.formatManilaDate(batch.recorded_at)
+        : "Recorded run";
+      recorded.hidden = false;
     } else {
       label.textContent = "";
       label.hidden = true;
+      recorded.hidden = true;
     }
     renderSummary(batch);
     renderChips(batch);
@@ -402,8 +415,7 @@
   }
 
   function trySample() {
-    if (state.runLive) runSampleLive();
-    else loadCachedSample();
+    loadCachedSample();
   }
 
   // --- downloads ----------------------------------------------------------------------------
@@ -466,7 +478,7 @@
     hideError();
     hideResults();
     $("drop-text").textContent = file.name + " · " + formatSize(file.size);
-    $("extract-btn").disabled = false;
+    updateActions();
     var pages = await countPages(file);
     if (state.file === file && pages) {
       file.pageCount = pages;
@@ -505,10 +517,8 @@
 
     $("extract-btn").addEventListener("click", extractSelected);
     $("sample-btn").addEventListener("click", trySample);
-    $("run-live").addEventListener("click", function () {
-      state.runLive = !state.runLive;
-      $("run-live").setAttribute("aria-checked", state.runLive ? "true" : "false");
-    });
+    $("run-live-btn").addEventListener("click", runSampleLive);
+    $("sample-missing-live-btn").addEventListener("click", runSampleLive);
     $("error-dismiss").addEventListener("click", hideError);
     $("error-fallback").addEventListener("click", function () {
       hideError();
@@ -529,6 +539,12 @@
     });
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
-  else init();
+  function start() {
+    init();
+    updateActions();
+    if (location.hash === "#sample") loadCachedSample();
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+  else start();
 })();

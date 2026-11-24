@@ -72,6 +72,30 @@
     return count + " " + (count === 1 ? one : many);
   }
 
+  // "23 Nov 2026" for an ISO timestamp, in Manila time. Falls back to the ISO date when Intl
+  // is missing or throws, or the timestamp does not parse.
+  function formatManilaDate(iso) {
+    var fallback = String(iso || "").slice(0, 10);
+    try {
+      var when = new Date(iso);
+      if (isNaN(when.getTime())) return fallback || "—";
+      var parts = {};
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "Asia/Manila",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+        .formatToParts(when)
+        .forEach(function (part) {
+          parts[part.type] = part.value;
+        });
+      return parts.day + " " + parts.month + " " + parts.year;
+    } catch (err) {
+      return fallback || "—";
+    }
+  }
+
   // --- totals -------------------------------------------------------------------------------
 
   // One entry per currency of summary.total_amount_by_currency. The amounts come from the two
@@ -121,6 +145,7 @@
     dash: dash,
     formatPages: formatPages,
     plural: plural,
+    formatManilaDate: formatManilaDate,
     totalLines: totalLines,
     FLAG_SENTENCES: FLAG_SENTENCES,
   };

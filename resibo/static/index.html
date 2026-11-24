@@ -27,13 +27,8 @@
       <input id="file-input" class="visually-hidden" type="file" accept="application/pdf"
              aria-label="PDF file">
       <div class="actions">
-        <button id="extract-btn" class="btn btn-primary" type="button" disabled>Extract</button>
-        <button id="sample-btn" class="btn btn-secondary" type="button">Try with sample invoices</button>
-        <label class="toggle-wrap">
-          <button id="run-live" class="toggle" type="button" role="switch" aria-checked="false"
-                  aria-label="Run live"><span class="toggle-thumb"></span></button>
-          <span class="toggle-label">Run live</span>
-        </label>
+        <button id="extract-btn" class="btn btn-primary" type="button" hidden disabled>Extract</button>
+        <button id="sample-btn" class="btn btn-primary" type="button">Try with sample invoices</button>
         <a id="sample-pdf-link" class="link" href="/api/sample" target="_blank" rel="noopener">View sample PDF</a>
       </div>
     </section>
@@ -53,11 +48,16 @@
     </div>
 
     <section id="sample-missing" class="notice" hidden>
-      <p>Sample result not recorded yet</p>
-      <p class="small muted">You can still read the <a class="link" href="/api/sample" target="_blank" rel="noopener">sample PDF</a>, or turn on Run live to process it now.</p>
+      <p>No recorded sample result yet. Use Run it live now to process the sample invoices.</p>
+      <p class="small muted">You can also read the <a class="link" href="/api/sample" target="_blank" rel="noopener">sample PDF</a>.</p>
+      <button id="sample-missing-live-btn" class="btn btn-primary" type="button">Run it live now</button>
     </section>
 
     <section id="results" class="results" hidden>
+      <p id="recorded-run" class="recorded-run" hidden>
+        <span id="recorded-run-text">Recorded run</span>
+        <button id="run-live-btn" class="btn btn-secondary btn-small" type="button">Run it live now</button>
+      </p>
       <p id="cached-label" class="cached-label" hidden></p>
       <div id="summary-cards" class="cards">
         <div class="card"><span class="card-label">Documents found</span><span id="card-documents" class="card-value">0</span></div>
