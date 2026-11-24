@@ -1,3 +1,4 @@
+import json
 import re
 import shutil
 import subprocess
@@ -20,6 +21,7 @@ JS = (STATIC / "app.js").read_text(encoding="utf-8")
 CSS = (STATIC / "styles.css").read_text(encoding="utf-8")
 THEME = (STATIC / "theme.css").read_text(encoding="utf-8")
 THEME_JS = (STATIC / "theme.js").read_text(encoding="utf-8")
+COMMON_JS = (STATIC / "common.js").read_text(encoding="utf-8")
 
 # every element the SPEC.md section 12 layout needs
 REQUIRED_IDS = [
@@ -50,6 +52,7 @@ def test_index_and_assets_are_served_under_the_strict_csp(client):
         ("/static/styles.css", "text/css"),
         ("/static/theme.css", "text/css"),
         ("/static/theme.js", "javascript"),
+        ("/static/common.js", "javascript"),
     ):
         r = client.get(path)
         assert r.status_code == 200, path
@@ -74,7 +77,7 @@ def test_every_section_12_element_id_exists():
 
 
 def test_javascript_never_inserts_html():
-    for js in (JS, THEME_JS):
+    for js in (JS, THEME_JS, COMMON_JS):
         _assert_no_html_insertion(js)
     assert "textContent" in JS
 
@@ -136,7 +139,7 @@ def test_index_has_no_inline_script_or_style():
     inspector.feed(INDEX)
     assert inspector.inline_scripts == 0
     assert inspector.style_attrs == 0 and inspector.handler_attrs == 0
-    assert inspector.script_srcs == ["/static/theme.js", "/static/app.js"]
+    assert inspector.script_srcs == ["/static/theme.js", "/static/common.js", "/static/app.js"]
     assert inspector.head_scripts[0] == ("/static/theme.js", False)  # first, in <head>, no defer
     landing = _Inspector()
     landing.feed(LANDING)
@@ -223,7 +226,7 @@ def test_nothing_is_loaded_from_another_origin():
         )
     for css in (CSS, THEME):
         assert "@import" not in css and "url(http" not in css and "//" not in css.replace("/*", "")
-    assert 'fetch("http' not in JS and "http" not in THEME_JS
+    assert 'fetch("http' not in JS and "http" not in THEME_JS and "http" not in COMMON_JS
 
 
 def light_tokens() -> dict[str, str]:
@@ -351,8 +354,8 @@ def test_contrast_of_every_listed_pair_in_light_and_dark():
 
 
 def test_money_formatter_falls_back_when_intl_throws():
-    start = JS.index("function formatMoney")
-    body = JS[start : JS.index("function dash")]
+    start = COMMON_JS.index("function formatMoney")
+    body = COMMON_JS[start : COMMON_JS.index("function dash")]
     assert "Intl.NumberFormat" in body and "try" in body and "catch" in body
     assert "RangeError" in body  # documented fallback: plain two-decimal number + raw currency
     assert "plainNumber(value)" in body
@@ -391,5 +394,82 @@ def test_layout_is_responsive_to_360px():
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
 def test_app_js_parses():
-    for name in ("app.js", "theme.js"):
+    for name in ("app.js", "theme.js", "common.js"):
         subprocess.run(["node", "--check", str(STATIC / name)], check=True)
+
+
+def test_no_javascript_file_sets_inline_styles():
+    for path in sorted(STATIC.glob("*.js")):
+        assert not re.search(r"\.style\b|setAttribute\(\s*[\"']style", path.read_text("utf-8")), (
+            path
+        )
+
+
+def test_app_js_uses_the_shared_helpers_and_defines_no_globals():
+    assert not re.search(r"\bwindow\.\w+\s*=(?!=)", JS)
+    assert "window.Resibo" in JS
+    for moved in ("formatMoney", "formatPages", "plainNumber", "dash", "plural", "el", "clear"):
+        assert f"function {moved}(" not in JS, moved
+    assert len(re.findall(r"window\.Resibo\s*=", COMMON_JS)) == 1
+    assert not re.search(r"window\.(?!Resibo\b)\w+\s*=(?!=)", COMMON_JS)
+
+
+def run_node(script: str) -> str:
+    return subprocess.run(
+        ["node", "-e", script], check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+
+COMMON_HARNESS = """
+const code = require('fs').readFileSync(%r, 'utf8');
+const window = {};
+new Function('window', 'document', code)(window, {});
+const R = window.Resibo;
+"""
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_total_lines_and_pages_in_node():
+    harness = COMMON_HARNESS % str(STATIC / "common.js")
+
+    def lines(summary, invoices):
+        script = harness + f"console.log(JSON.stringify(R.totalLines({summary}, {invoices})));"
+        return json.loads(run_node(script))
+
+    sample = (
+        '{"total_amount_by_currency": {"PHP": 176100}, '
+        '"total_excluding_errors_by_currency": {"PHP": 155640}}'
+    )
+    errors = [
+        {"status": "ERROR", "currency": "PHP", "total_amount": 9260},
+        {"status": "ERROR", "currency": "PHP", "total_amount": 11200},
+        {"status": "OK", "currency": "PHP", "total_amount": 5},
+    ]
+    assert lines(sample, json.dumps(errors)) == [
+        {"currency": "PHP", "amount": 155640, "leftOut": 20460, "errors": 2}
+    ]
+    clean = (
+        '{"total_amount_by_currency": {"PHP": 5}, "total_excluding_errors_by_currency": {"PHP": 5}}'
+    )
+    assert lines(clean, json.dumps(errors[2:])) == [
+        {"currency": "PHP", "amount": 5, "leftOut": 0, "errors": 0}
+    ]
+    every = '{"total_amount_by_currency": {"PHP": 900}, "total_excluding_errors_by_currency": {}}'
+    assert lines(every, json.dumps(errors[:2])) == [
+        {"currency": "PHP", "amount": None, "leftOut": 900, "errors": 2}
+    ]
+    # an ERROR invoice with no total still counts and adds nothing; currencies keep their order
+    mixed = (
+        '{"total_amount_by_currency": {"USD": 120, "PHP": 50}, '
+        '"total_excluding_errors_by_currency": {"PHP": 50}}'
+    )
+    invoices = [
+        {"status": "ERROR", "currency": "USD", "total_amount": 120},
+        {"status": "ERROR", "currency": "USD", "total_amount": None},
+        {"status": "OK", "currency": "PHP", "total_amount": 50},
+    ]
+    assert lines(mixed, json.dumps(invoices)) == [
+        {"currency": "USD", "amount": None, "leftOut": 120, "errors": 2},
+        {"currency": "PHP", "amount": 50, "leftOut": 0, "errors": 0},
+    ]
+    assert run_node(harness + "console.log(R.formatPages([2, 3]), R.formatPages([5]));") == "2-3 5"

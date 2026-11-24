@@ -25,74 +25,13 @@
     return document.getElementById(id);
   }
 
-  function el(tag, options, children) {
-    var node = document.createElement(tag);
-    options = options || {};
-    if (options.className) node.className = options.className;
-    if (options.text !== undefined && options.text !== null) node.textContent = options.text;
-    if (options.attrs) {
-      Object.keys(options.attrs).forEach(function (name) {
-        node.setAttribute(name, options.attrs[name]);
-      });
-    }
-    (children || []).forEach(function (child) {
-      if (child) node.appendChild(child);
-    });
-    return node;
-  }
-
-  function clear(node) {
-    while (node.firstChild) node.removeChild(node.firstChild);
-  }
-
-  // --- formatting ---------------------------------------------------------------------------
-
-  function plainNumber(value) {
-    return Number(value).toLocaleString("en-PH", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  }
-
-  // Money in the record's currency. An unknown or odd currency code makes Intl throw a
-  // RangeError: fall back to a plain two-decimal number with the raw currency text.
-  function formatMoney(value, currency) {
-    if (value === null || value === undefined) return "—";
-    if (currency) {
-      try {
-        return new Intl.NumberFormat("en-PH", { style: "currency", currency: currency }).format(value);
-      } catch (err) {
-        // RangeError for an invalid currency code
-      }
-    }
-    return plainNumber(value) + (currency ? " " + currency : "");
-  }
-
-  function dash(value) {
-    return value === null || value === undefined || value === "" ? "—" : String(value);
-  }
-
-  function formatPages(pages) {
-    if (!pages || !pages.length) return "—";
-    var sorted = pages.slice().sort(function (a, b) { return a - b; });
-    var parts = [];
-    var start = sorted[0];
-    var prev = start;
-    for (var i = 1; i <= sorted.length; i++) {
-      if (sorted[i] === prev + 1) {
-        prev = sorted[i];
-        continue;
-      }
-      parts.push(start === prev ? String(start) : start + "-" + prev);
-      start = sorted[i];
-      prev = start;
-    }
-    return parts.join(", ");
-  }
-
-  function plural(count, one, many) {
-    return count + " " + (count === 1 ? one : many);
-  }
+  var R = window.Resibo;
+  var el = R.el;
+  var clear = R.clear;
+  var formatMoney = R.formatMoney;
+  var dash = R.dash;
+  var formatPages = R.formatPages;
+  var plural = R.plural;
 
   // --- state rendering ----------------------------------------------------------------------
 
@@ -149,21 +88,25 @@
   function renderSummary(batch) {
     var s = batch.summary;
     $("card-documents").textContent = String(s.documents);
-    var totals = s.total_amount_by_currency || {};
     var totalNode = $("card-total");
     clear(totalNode);
-    var codes = Object.keys(totals);
-    if (!codes.length) {
+    var lines = R.totalLines(s, batch.invoices);
+    if (!lines.length) {
       totalNode.textContent = "—";
     } else {
-      var php = totals.PHP !== undefined ? totals.PHP : null;
-      totalNode.appendChild(el("span", { text: php === null ? "—" : formatMoney(php, "PHP") }));
-      codes.forEach(function (code) {
-        if (code === "PHP") return;
-        totalNode.appendChild(
-          el("span", { className: "small muted", text: "+ " + code + " " + plainNumber(totals[code]) }),
-        );
-        totalNode.appendChild(document.createElement("br"));
+      lines.forEach(function (line) {
+        var children = [el("span", { text: formatMoney(line.amount, line.currency) })];
+        if (line.errors > 0) {
+          children.push(
+            el("span", {
+              className: "small muted total-note",
+              text:
+                "leaves out " + plural(line.errors, "error", "errors") + ", " +
+                formatMoney(line.leftOut, line.currency),
+            }),
+          );
+        }
+        totalNode.appendChild(el("span", { className: "total-line" }, children));
       });
     }
     $("card-review").textContent = String(s.review + s.error);
