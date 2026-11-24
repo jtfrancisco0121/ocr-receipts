@@ -275,7 +275,7 @@
         "tr",
         {
           className: "row status-" + inv.status.toLowerCase(),
-          attrs: { tabindex: "0", "aria-expanded": open ? "true" : "false", "aria-controls": detailId },
+          attrs: { tabindex: "0", "data-id": inv.id, "aria-expanded": open ? "true" : "false", "aria-controls": detailId },
         },
         [
           el("td", { className: "chevron-cell" }, [
@@ -305,6 +305,8 @@
       function toggle() {
         state.expanded[inv.id] = !state.expanded[inv.id];
         renderTable(batch);
+        var again = body.querySelector('tr.row[data-id="' + String(inv.id).replace(/["\\]/g, "") + '"]');
+        if (again) again.focus();
       }
       tr.addEventListener("click", toggle);
       tr.addEventListener("keydown", function (event) {

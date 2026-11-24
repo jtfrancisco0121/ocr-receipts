@@ -774,3 +774,11 @@ def test_limits_text_is_verbatim_in_both_pages_and_footers_link_to_real_files(cl
         assert f"{repo}/blob/main/docs/architecture.md" in hrefs
     assert (root / "n8n" / "README.md").is_file() and (root / "docs" / "architecture.md").is_file()
     assert client.get("/docs").status_code == 200
+
+
+def test_toggle_and_slip_click_keep_keyboard_focus():
+    app = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert '"data-id": inv.id' in app
+    assert "again.focus()" in app
+    landing = (STATIC / "landing.js").read_text(encoding="utf-8")
+    assert "select(model.id, true)" in landing

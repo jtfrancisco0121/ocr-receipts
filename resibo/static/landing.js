@@ -139,7 +139,7 @@
         el("span", { className: "slip-status", text: model.label }),
       ],
     );
-    button.addEventListener("click", function () { select(model.id, false); });
+    button.addEventListener("click", function () { select(model.id, true); });
     button.addEventListener("keydown", function (event) { onKey(event, model.id); });
     return button;
   }
