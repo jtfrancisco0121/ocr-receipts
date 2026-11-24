@@ -62,7 +62,13 @@
       <div id="summary-cards" class="cards">
         <div class="card"><span class="card-label">Documents found</span><span id="card-documents" class="card-value">0</span></div>
         <div class="card"><span class="card-label">Total, excluding errors</span><span id="card-total" class="card-value">—</span></div>
-        <div class="card"><span class="card-label">Needs review</span><span id="card-review" class="card-value">0</span></div>
+        <div class="card"><span class="card-label">Status</span>
+          <span class="card-value counts">
+            <button id="count-ok" class="count" type="button" aria-pressed="false">OK 0</button>
+            <button id="count-review" class="count" type="button" aria-pressed="false">Review 0</button>
+            <button id="count-error" class="count" type="button" aria-pressed="false">Error 0</button>
+          </span>
+        </div>
         <div class="card"><span class="card-label">Tokens / est. cost</span><span id="card-cost" class="card-value card-value-small">—</span></div>
         <div class="card"><span class="card-label">Time taken</span><span id="card-time" class="card-value">—</span></div>
       </div>

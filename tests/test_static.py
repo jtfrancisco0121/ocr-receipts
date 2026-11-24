@@ -32,7 +32,8 @@ REQUIRED_IDS = [
     "error-banner", "error-message", "error-fallback", "error-dismiss",
     "sample-missing",
     "results", "cached-label", "summary-cards",
-    "card-documents", "card-total", "card-review", "card-cost", "card-time",
+    "card-documents", "card-total", "count-ok", "count-review", "count-error", "card-cost",
+    "card-time",
     "downloads", "btn-xlsx", "btn-invoices-csv", "btn-line-items-csv",
     "filter-chips", "results-table", "results-body",
     "github-link", "docs-link",
@@ -473,3 +474,14 @@ def test_total_lines_and_pages_in_node():
         {"currency": "PHP", "amount": 50, "leftOut": 0, "errors": 0},
     ]
     assert run_node(harness + "console.log(R.formatPages([2, 3]), R.formatPages([5]));") == "2-3 5"
+
+
+def test_counts_chips_and_announcer_use_the_summary_numbers():
+    assert not re.search(r"\b(?:s|summary)\.review\s*\+\s*(?:s|summary)\.error", JS)
+    assert not re.search(r"review\s*\+\s*\w+\.error|review\s*\+\s*error", JS)
+    for field in ("s.documents", "s.ok", "s.review", "s.error"):
+        assert field in JS, field
+    assert "counts.ok" in JS and "counts.review" in JS and "counts.error" in JS
+    assert "countByStatus" not in JS  # chips are not recounted from the invoices
+    for count_id in ("count-ok", "count-review", "count-error"):
+        assert f'$("{count_id}")' in JS

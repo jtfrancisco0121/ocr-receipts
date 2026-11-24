@@ -109,7 +109,7 @@
         totalNode.appendChild(el("span", { className: "total-line" }, children));
       });
     }
-    $("card-review").textContent = String(s.review + s.error);
+    renderCounts(batch);
     var tokens = batch.usage.input_tokens + batch.usage.output_tokens;
     var cost = batch.usage.estimated_cost_usd;
     $("card-cost").textContent =
@@ -118,30 +118,46 @@
     $("card-time").textContent = (batch.duration_ms / 1000).toFixed(1) + " s";
   }
 
-  function countByStatus(batch, status) {
-    return batch.invoices.filter(function (inv) { return inv.status === status; }).length;
+  // The counts come from batch.summary, the same numbers the status counts and the filter chips
+  // show, so the screen never contradicts itself.
+  function statusCounts(batch) {
+    var s = batch.summary;
+    return [
+      ["ALL", "All", s.documents],
+      ["OK", "OK", s.ok],
+      ["REVIEW", "Review", s.review],
+      ["ERROR", "Error", s.error],
+    ];
+  }
+
+  function setFilter(batch, filter) {
+    state.filter = filter;
+    renderCounts(batch);
+    renderChips(batch);
+    renderTable(batch);
+  }
+
+  function renderCounts(batch) {
+    var buttons = { OK: $("count-ok"), REVIEW: $("count-review"), ERROR: $("count-error") };
+    statusCounts(batch).forEach(function (option) {
+      var button = buttons[option[0]];
+      if (!button) return;
+      button.textContent = option[1] + " " + option[2];
+      button.setAttribute("aria-pressed", state.filter === option[0] ? "true" : "false");
+      button.onclick = function () { setFilter(batch, option[0]); };
+    });
   }
 
   function renderChips(batch) {
     var chips = $("filter-chips");
     clear(chips);
-    var options = [
-      ["ALL", "All", batch.invoices.length],
-      ["OK", "OK", countByStatus(batch, "OK")],
-      ["REVIEW", "Review", countByStatus(batch, "REVIEW")],
-      ["ERROR", "Error", countByStatus(batch, "ERROR")],
-    ];
-    options.forEach(function (option) {
+    statusCounts(batch).forEach(function (option) {
       var chip = el("button", {
         className: "chip",
         text: option[1] + " (" + option[2] + ")",
         attrs: { type: "button", "aria-pressed": state.filter === option[0] ? "true" : "false" },
       });
-      chip.addEventListener("click", function () {
-        state.filter = option[0];
-        renderChips(batch);
-        renderTable(batch);
-      });
+      chip.addEventListener("click", function () { setFilter(batch, option[0]); });
       chips.appendChild(chip);
     });
   }
@@ -300,9 +316,10 @@
     renderChips(batch);
     renderTable(batch);
     $("results").hidden = false;
-    var needs = batch.summary.review + batch.summary.error;
+    var counts = batch.summary;
     $("announcer").textContent =
-      plural(batch.summary.documents, "document", "documents") + " found, " + needs + " need review";
+      plural(counts.documents, "document", "documents") + " found: " + counts.ok + " OK, " +
+      counts.review + " Review, " + counts.error + " Error";
   }
 
   // --- requests -----------------------------------------------------------------------------
