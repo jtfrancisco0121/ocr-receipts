@@ -21,6 +21,7 @@ JS = (STATIC / "app.js").read_text(encoding="utf-8")
 CSS = (STATIC / "styles.css").read_text(encoding="utf-8")
 THEME = (STATIC / "theme.css").read_text(encoding="utf-8")
 THEME_JS = (STATIC / "theme.js").read_text(encoding="utf-8")
+LANDING_CSS = (STATIC / "landing.css").read_text(encoding="utf-8")
 COMMON_JS = (STATIC / "common.js").read_text(encoding="utf-8")
 
 # every element the SPEC.md section 12 layout needs
@@ -53,6 +54,7 @@ def test_index_and_assets_are_served_under_the_strict_csp(client):
         ("/static/app.js", "javascript"),
         ("/static/styles.css", "text/css"),
         ("/static/theme.css", "text/css"),
+        ("/static/landing.css", "text/css"),
         ("/static/theme.js", "javascript"),
         ("/static/common.js", "javascript"),
     ):
@@ -226,7 +228,7 @@ def test_nothing_is_loaded_from_another_origin():
         assert not re.findall(
             r"""(?:src|href)=["']https?://""", page.replace("https://github.com/", "")
         )
-    for css in (CSS, THEME):
+    for css in (CSS, THEME, LANDING_CSS):
         assert "@import" not in css and "url(http" not in css and "//" not in css.replace("/*", "")
     assert 'fetch("http' not in JS and "http" not in THEME_JS and "http" not in COMMON_JS
 
@@ -272,9 +274,7 @@ def outside_token_blocks(css: str) -> str:
 def test_no_colour_literal_outside_the_theme_tokens():
     assert not COLOUR_LITERAL.findall(CSS)
     assert not COLOUR_LITERAL.findall(outside_token_blocks(THEME))
-    landing_css = STATIC / "landing.css"
-    if landing_css.exists():
-        assert not COLOUR_LITERAL.findall(landing_css.read_text(encoding="utf-8"))
+    assert not COLOUR_LITERAL.findall(LANDING_CSS)
     assert COLOUR_LITERAL.findall(THEME)  # the guard above would pass on an empty theme
 
 
@@ -612,3 +612,19 @@ def test_masthead_and_totals_band_ids_and_no_card_ids():
     assert "border-radius" not in CSS.replace("border-radius: 0", "").replace(
         "border-radius: 50%", ""
     )
+
+
+def test_landing_has_the_masthead_lede_and_form_box():
+    for needle in ('id="masthead"', 'id="theme-toggle"', "No. 0000001"):
+        assert needle in LANDING and needle in INDEX, needle
+    assert re.search(r'<a id="wordmark"[^>]*href="/"', LANDING)
+    assert "Invoice &amp; receipt reader · VAT 12% · ₱" in LANDING
+    for nav in ("How it reads", "What it checks", ">API<", ">GitHub<"):
+        assert nav in LANDING, nav
+    assert "Stop encoding invoices by hand." in LANDING
+    assert re.search(r'<a [^>]*href="#rack"[^>]*>Open the sample batch</a>', LANDING)
+    assert re.search(r'<a [^>]*href="/app"[^>]*>Upload a PDF</a>', LANDING)
+    for label in ("Sold to", "Accepts", "Gives back", "Terms"):
+        assert f"<dt>{label}</dt>" in LANDING, label
+    assert 'id="rack"' in LANDING
+    assert "/static/landing.css" in LANDING and "/static/theme.css" in LANDING

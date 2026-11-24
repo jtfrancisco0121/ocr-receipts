@@ -1,0 +1,43 @@
+/* Landing layout. No colour values: every colour is a token from theme.css. */
+[hidden] { display: none !important; }
+
+.page { max-width: 1160px; margin: 0 auto; padding: 20px 24px 40px; min-width: 0; }
+.brand { display: inline-block; line-height: 1; }
+
+.section-title {
+  margin: 0 0 16px; text-transform: uppercase; font-stretch: 66%; font-weight: 850;
+  font-size: 28px; letter-spacing: 0.03em;
+}
+
+.lede {
+  display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 32px 48px; align-items: center; padding: 36px 0 40px;
+}
+.lede-copy { min-width: 0; }
+.headline {
+  margin: 0 0 16px; text-transform: uppercase; font-stretch: 66%; font-weight: 850;
+  font-size: clamp(40px, 7vw, 76px); line-height: 0.95; letter-spacing: 0.01em;
+}
+.lede-text { margin: 0 0 24px; max-width: 34em; font-size: 17px; color: var(--ink-2); }
+.lede-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+.form-box { margin: 0; border: 2px solid var(--ink-2); background: var(--paper); min-width: 0; }
+.form-row {
+  display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px;
+  padding: 10px 14px; border-bottom: 1px solid var(--rule); align-items: baseline;
+}
+.form-row:last-child { border-bottom: 0; }
+.form-row dt {
+  font-size: 12px; color: var(--ink-2); text-transform: uppercase;
+  font-stretch: 85%; letter-spacing: 0.08em;
+}
+.form-row dd { margin: 0; font-family: var(--font-mono); font-size: 14px; overflow-wrap: anywhere; }
+
+.rack { background: var(--band); padding: 24px; margin: 0 -24px; }
+
+@media (max-width: 767px) {
+  .page { padding: 16px; }
+  .lede { grid-template-columns: minmax(0, 1fr); padding: 24px 0; }
+  .rack { margin: 0 -16px; padding: 16px; }
+  .masthead-nav { margin-left: 0; }
+}

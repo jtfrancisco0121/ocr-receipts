@@ -4,18 +4,50 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Resibo - Stop encoding invoices by hand</title>
-  <meta name="description" content="Turn a PDF of invoices into a clean, validated spreadsheet.">
+  <meta name="description" content="Resibo reads a PDF of Philippine invoices and receipts, checks them and returns a spreadsheet that says which rows to fix.">
   <link rel="stylesheet" href="/static/theme.css">
+  <link rel="stylesheet" href="/static/landing.css">
   <script src="/static/theme.js"></script>
 </head>
 <body>
-  <main class="page">
-    <header id="masthead">
-      <a id="wordmark" href="/">RESIBO</a>
-      <button id="theme-toggle" type="button" aria-pressed="false">Dark mode</button>
+  <div class="page">
+    <header id="masthead" class="masthead">
+      <div class="masthead-top">
+        <span id="title" class="brand"><a id="wordmark" class="wordmark" href="/">RESIBO</a></span>
+        <span class="masthead-label">Invoice &amp; receipt reader · VAT 12% · ₱</span>
+        <nav class="masthead-nav" aria-label="Site">
+          <a href="#how">How it reads</a>
+          <a href="#checks">What it checks</a>
+          <a href="/docs">API</a>
+          <a href="https://github.com/jtfrancisco0121/ocr-receipts" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+        <span class="serial">No. 0000001</span>
+        <button id="theme-toggle" type="button" aria-pressed="false">Dark mode</button>
+      </div>
     </header>
-    <h1>Stop encoding invoices by hand.</h1>
-    <p><a id="open-app" href="/app">Open the app</a></p>
-  </main>
+
+    <main>
+      <section class="lede" aria-label="Introduction">
+        <div class="lede-copy">
+          <h1 class="headline">Stop encoding invoices by hand.</h1>
+          <p class="lede-text">Resibo reads a PDF of Philippine invoices and receipts, checks the arithmetic and the BIR details, and hands back a spreadsheet that says which rows to fix and why.</p>
+          <div class="lede-actions">
+            <a id="open-sample" class="btn btn-primary" href="#rack">Open the sample batch</a>
+            <a id="upload-pdf" class="btn btn-secondary" href="/app">Upload a PDF</a>
+          </div>
+        </div>
+        <dl class="form-box" aria-label="What Resibo is">
+          <div class="form-row"><dt>Sold to</dt><dd>Bookkeepers who encode invoices by hand</dd></div>
+          <div class="form-row"><dt>Accepts</dt><dd>A PDF of invoices, receipts or billing statements, up to 15 pages in the demo</dd></div>
+          <div class="form-row"><dt>Gives back</dt><dd>Excel or CSV, with every problem flagged and explained</dd></div>
+          <div class="form-row"><dt>Terms</dt><dd>Free demo, 5 live runs per hour. Files are not stored.</dd></div>
+        </dl>
+      </section>
+
+      <section id="rack" class="rack" aria-label="Sample batch">
+        <h2 class="section-title">The sample batch</h2>
+      </section>
+    </main>
+  </div>
 </body>
 </html>
