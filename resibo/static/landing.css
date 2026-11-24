@@ -141,6 +141,13 @@
 }
 .tally-caption { margin: 8px 0 0; color: var(--ink-2); }
 
+/* Footer */
+.footer { margin-top: 48px; padding-top: 14px; border-top: 2px solid var(--ink); display: flex; flex-direction: column; gap: 8px; }
+.footer p { margin: 0; }
+.footer-claim { font-weight: 850; font-stretch: 66%; text-transform: uppercase; font-size: 18px; letter-spacing: 0.04em; }
+.footer-limits, .footer-credit { color: var(--ink-2); max-width: 52em; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+
 @media (max-width: 767px) {
   .how-grid { grid-template-columns: minmax(0, 1fr); }
   .check-row { grid-template-columns: minmax(0, 1fr) auto; }

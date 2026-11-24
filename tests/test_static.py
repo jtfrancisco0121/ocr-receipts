@@ -25,6 +25,11 @@ LANDING_CSS = (STATIC / "landing.css").read_text(encoding="utf-8")
 LANDING_JS = (STATIC / "landing.js").read_text(encoding="utf-8")
 COMMON_JS = (STATIC / "common.js").read_text(encoding="utf-8")
 
+LIMITS_TEXT = (
+    "Files are sent to the Anthropic API for reading and are not stored. "
+    "Results expire after 60 minutes. Demo limit: 15 pages, 5 live runs per hour."
+)
+
 # every element the SPEC.md section 12 layout needs
 REQUIRED_IDS = [
     "title", "tagline",
@@ -368,10 +373,7 @@ def test_money_formatter_falls_back_when_intl_throws():
 
 def test_spec_strings_are_present():
     assert "Turn a PDF of invoices into a clean, validated spreadsheet." in INDEX
-    assert (
-        "Files are sent to the Anthropic API for reading and are not stored. "
-        "Results expire after 60 minutes. Demo limit: 15 pages, 5 live runs per hour."
-    ) in INDEX
+    assert LIMITS_TEXT in INDEX
     labels = [
         "Try with sample invoices",
         "Run it live now",
@@ -756,3 +758,19 @@ def test_landing_how_it_reads_has_a_correct_curl_and_empty_recorded_run_slots():
         assert f'$("{slot}")' in LANDING_JS
     assert len(re.findall(r"\bfetch\(", LANDING_JS)) == 1
     assert "n8n/README.md" in LANDING and 'id="how"' in LANDING
+
+
+def test_limits_text_is_verbatim_in_both_pages_and_footers_link_to_real_files(client):
+    root = STATIC.parent.parent
+    for page in (INDEX, LANDING):
+        assert LIMITS_TEXT in page
+        assert "Built by Jan Terence Francisco" in page
+    assert "This demo is not valid for claim of input tax" in LANDING
+    repo = "https://github.com/jtfrancisco0121/ocr-receipts"
+    for page in (INDEX, LANDING):
+        hrefs = re.findall(r'href="([^"]+)"', page)
+        assert repo in hrefs and "/docs" in hrefs
+        assert f"{repo}/blob/main/n8n/README.md" in hrefs
+        assert f"{repo}/blob/main/docs/architecture.md" in hrefs
+    assert (root / "n8n" / "README.md").is_file() and (root / "docs" / "architecture.md").is_file()
+    assert client.get("/docs").status_code == 200
