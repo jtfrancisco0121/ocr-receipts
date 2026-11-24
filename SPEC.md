@@ -516,7 +516,8 @@ Columns: Invoice ID, Invoice No., Seller, Line #, Description, Qty, Unit, Unit P
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/` | Web UI |
+| GET | `/` | Landing page |
+| GET | `/app` | Web UI (the tool) |
 | GET | `/health` | `{"status":"ok","model":"…"}` — no API call. Used by Railway health check. |
 | GET | `/api/sample` | Returns the bundled `samples/sample-invoices.pdf` (used by **Run live** and for viewing the source) |
 | GET | `/api/sample/result` | Cached demo: replays the recorded model output in `samples/sample-result.json` through the normal normalize → validate → store path (see below). `cached: true`, downloads work. No API call; not counted against the budget. One shared sample batch per process, rebuilt only when it expires (so repeated calls do not grow the store). Light per-IP limit: 30 per minute. |

@@ -63,8 +63,10 @@ class AppState:
 
 
 class SecurityHeadersMiddleware:
-    """``nosniff`` on every response; the strict CSP only on the UI (``/`` and ``/static/*``) so
-    FastAPI's ``/docs`` page, which needs an inline script and CDN assets, keeps working."""
+    """``nosniff`` on every response; the strict CSP and ``Cache-Control: no-cache`` only on the UI
+    (``/``, ``/app`` and ``/static/*``) so FastAPI's ``/docs`` page, which needs an inline script
+    and CDN assets, keeps working. ``no-cache`` makes a returning visitor revalidate the pages and
+    scripts together after a deploy instead of mixing old and new files."""
 
     def __init__(self, app):
         self.app = app
@@ -74,7 +76,7 @@ class SecurityHeadersMiddleware:
             await self.app(scope, receive, send)
             return
         path = scope["path"]
-        is_ui = path == "/" or path.startswith("/static/")
+        is_ui = path in ("/", "/app") or path.startswith("/static/")
 
         async def send_with_headers(message):
             if message["type"] == "http.response.start":
@@ -82,6 +84,7 @@ class SecurityHeadersMiddleware:
                 headers.append((b"x-content-type-options", b"nosniff"))
                 if is_ui:
                     headers.append((b"content-security-policy", UI_CSP.encode()))
+                    headers.append((b"cache-control", b"no-cache"))
                 message = {**message, "headers": headers}
             await send(message)
 
@@ -289,13 +292,21 @@ def create_app(
 
     # --- routes -----------------------------------------------------------------------------
 
+    def page(name: str) -> FileResponse:
+        path = STATIC_DIR / name
+        if not path.is_file():
+            raise StarletteHTTPException(404, "The web page is not installed.")
+        return FileResponse(path, media_type="text/html")
+
     @app.get("/", include_in_schema=False)
     @app.head("/", include_in_schema=False)
-    def index():
-        page = STATIC_DIR / "index.html"
-        if not page.is_file():
-            raise StarletteHTTPException(404, "The web page is not installed.")
-        return FileResponse(page, media_type="text/html")
+    def landing():
+        return page("landing.html")
+
+    @app.get("/app", include_in_schema=False)
+    @app.head("/app", include_in_schema=False)
+    def tool():
+        return page("index.html")
 
     @app.get("/health")
     @app.head("/health", include_in_schema=False)

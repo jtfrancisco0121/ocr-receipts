@@ -150,7 +150,8 @@ def test_ui_routes_carry_the_strict_csp_when_present(env, tmp_path, monkeypatch)
 
     static = tmp_path / "static"
     static.mkdir()
-    (static / "index.html").write_text("<html></html>")
+    (static / "index.html").write_text("<html>app</html>")
+    (static / "landing.html").write_text("<html>landing</html>")
     (static / "app.js").write_text("// js")
     monkeypatch.setattr(api, "STATIC_DIR", static)
     local = Env(tmp_path)
@@ -158,11 +159,38 @@ def test_ui_routes_carry_the_strict_csp_when_present(env, tmp_path, monkeypatch)
 
     local.app.router.routes[:] = [r for r in local.app.router.routes if r.path != "/static"]
     local.app.mount("/static", StaticFiles(directory=static), name="static")
-    for path in ("/", "/static/app.js"):
+    for path in ("/", "/app", "/static/app.js"):
         r = local.client.get(path)
         assert r.status_code == 200
         assert r.headers["content-security-policy"] == UI_CSP
         assert r.headers["x-content-type-options"] == "nosniff"
+        assert r.headers["cache-control"] == "no-cache"
+    assert local.client.get("/").text == "<html>landing</html>"
+    assert local.client.get("/app").text == "<html>app</html>"
+    head = local.client.head("/app")
+    assert head.status_code == 200 and head.headers["content-security-policy"] == UI_CSP
+    for path in ("/docs", "/health"):
+        r = local.client.get(path)
+        assert "content-security-policy" not in r.headers
+        assert "cache-control" not in r.headers
+
+
+def test_pages_answer_404_when_not_installed(env, tmp_path, monkeypatch):
+    from resibo import api
+
+    static = tmp_path / "empty-static"
+    static.mkdir()
+    (static / "landing.html").write_text("<html>landing</html>")
+    monkeypatch.setattr(api, "STATIC_DIR", static)
+    local = Env(tmp_path)
+    r = local.client.get("/app")
+    assert r.status_code == 404
+    assert r.json()["error"]["message"] == "The web page is not installed."
+    assert local.client.get("/").status_code == 200
+    (static / "landing.html").unlink()
+    r = local.client.get("/")
+    assert r.status_code == 404
+    assert r.json()["error"]["message"] == "The web page is not installed."
 
 
 # --- errors ---------------------------------------------------------------------------------

@@ -15,6 +15,7 @@ from tests.helpers import FakeLLM
 
 STATIC = Path(api.__file__).resolve().parent / "static"
 INDEX = (STATIC / "index.html").read_text(encoding="utf-8")
+LANDING = (STATIC / "landing.html").read_text(encoding="utf-8")
 JS = (STATIC / "app.js").read_text(encoding="utf-8")
 CSS = (STATIC / "styles.css").read_text(encoding="utf-8")
 
@@ -42,6 +43,7 @@ def client(tmp_path):
 def test_index_and_assets_are_served_under_the_strict_csp(client):
     for path, kind in (
         ("/", "text/html"),
+        ("/app", "text/html"),
         ("/static/app.js", "javascript"),
         ("/static/styles.css", "text/css"),
     ):
@@ -51,7 +53,10 @@ def test_index_and_assets_are_served_under_the_strict_csp(client):
         assert r.headers["content-security-policy"] == UI_CSP
         assert r.headers["x-content-type-options"] == "nosniff"
     assert "default-src 'self'" in UI_CSP and "frame-ancestors 'none'" in UI_CSP
-    assert client.get("/").text == INDEX
+    assert client.get("/").text == LANDING
+    assert client.get("/app").text == INDEX
+    head = client.head("/app")
+    assert head.status_code == 200 and head.headers["content-security-policy"] == UI_CSP
 
 
 def test_docs_page_is_not_under_the_ui_csp(client):
@@ -115,12 +120,18 @@ def test_index_has_no_inline_script_or_style():
     assert inspector.inline_scripts == 0
     assert inspector.style_attrs == 0 and inspector.handler_attrs == 0
     assert inspector.script_srcs == ["/static/app.js"]
+    landing = _Inspector()
+    landing.feed(LANDING)
+    assert landing.inline_scripts == 0
+    assert landing.style_attrs == 0 and landing.handler_attrs == 0
+    assert landing.script_srcs == []
 
 
 def test_nothing_is_loaded_from_another_origin():
-    assert not re.findall(
-        r"""(?:src|href)=["']https?://""", INDEX.replace("https://github.com/", "")
-    )
+    for page in (INDEX, LANDING):
+        assert not re.findall(
+            r"""(?:src|href)=["']https?://""", page.replace("https://github.com/", "")
+        )
     assert "@import" not in CSS and "url(http" not in CSS
     assert 'fetch("http' not in JS
 
