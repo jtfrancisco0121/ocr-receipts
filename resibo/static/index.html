@@ -13,9 +13,19 @@
 </head>
 <body>
   <main class="page">
-    <header class="header">
-      <h1 id="title">Resibo</h1>
-      <button id="theme-toggle" class="btn btn-secondary btn-small" type="button" aria-pressed="false">Dark mode</button>
+    <header id="masthead" class="masthead">
+      <div class="masthead-top">
+        <h1 id="title"><a id="wordmark" class="wordmark" href="/">RESIBO</a></h1>
+        <span class="masthead-label">Invoice &amp; receipt reader · VAT 12% · ₱</span>
+        <nav class="masthead-nav" aria-label="Site">
+          <a href="/#how">How it reads</a>
+          <a href="/#checks">What it checks</a>
+          <a href="/docs" target="_blank" rel="noopener">API</a>
+          <a href="https://github.com/jtfrancisco0121/ocr-receipts" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+        <span class="serial">No. 0000001</span>
+        <button id="theme-toggle" type="button" aria-pressed="false">Dark mode</button>
+      </div>
       <p id="tagline">Turn a PDF of invoices into a clean, validated spreadsheet.</p>
     </header>
 
@@ -59,25 +69,32 @@
         <button id="run-live-btn" class="btn btn-secondary btn-small" type="button">Run it live now</button>
       </p>
       <p id="cached-label" class="cached-label" hidden></p>
-      <div id="summary-cards" class="cards">
-        <div class="card"><span class="card-label">Documents found</span><span id="card-documents" class="card-value">0</span></div>
-        <div class="card"><span class="card-label">Total, excluding errors</span><span id="card-total" class="card-value">—</span></div>
-        <div class="card"><span class="card-label">Status</span>
-          <span class="card-value counts">
+      <div id="totals-band" class="band">
+        <div class="band-cell"><span class="band-label">Documents</span><span id="total-documents" class="band-value mono">0</span></div>
+        <div class="band-cell band-cell-wide">
+          <span class="band-label">Total, excluding errors</span>
+          <span id="total-amount" class="band-value mono">—</span>
+          <span id="total-errors-note" class="band-sub small"></span>
+        </div>
+        <div class="band-cell">
+          <span class="band-label">Status</span>
+          <span class="band-value counts">
             <button id="count-ok" class="count" type="button" aria-pressed="false">OK 0</button>
             <button id="count-review" class="count" type="button" aria-pressed="false">Review 0</button>
             <button id="count-error" class="count" type="button" aria-pressed="false">Error 0</button>
           </span>
         </div>
-        <div class="card"><span class="card-label">Tokens / est. cost</span><span id="card-cost" class="card-value card-value-small">—</span></div>
-        <div class="card"><span class="card-label">Time taken</span><span id="card-time" class="card-value">—</span></div>
+        <div class="band-cell"><span class="band-label">Cost (est.)</span><span id="total-cost" class="band-value mono">—</span><span id="total-tokens" class="band-sub small mono"></span></div>
+        <div class="band-cell"><span class="band-label">Time</span><span id="total-time" class="band-value mono">—</span><span id="total-model" class="band-sub small mono"></span></div>
       </div>
-      <div id="downloads" class="actions">
-        <button id="btn-xlsx" class="btn btn-primary" type="button">Download Excel</button>
-        <button id="btn-invoices-csv" class="btn btn-secondary" type="button">Download Invoices CSV</button>
-        <button id="btn-line-items-csv" class="btn btn-secondary" type="button">Download Line items CSV</button>
+      <div class="toolbar">
+        <div id="filter-tabs" class="tabs" role="group" aria-label="Filter by status"></div>
+        <div id="downloads" class="downloads">
+          <button id="btn-xlsx" class="btn btn-primary btn-small" type="button">Download Excel</button>
+          <button id="btn-invoices-csv" class="btn btn-secondary btn-small" type="button">Download Invoices CSV</button>
+          <button id="btn-line-items-csv" class="btn btn-secondary btn-small" type="button">Download Line items CSV</button>
+        </div>
       </div>
-      <div id="filter-chips" class="chips" role="group" aria-label="Filter by status"></div>
       <p id="results-empty" class="muted" hidden></p>
       <div class="table-wrap">
         <table id="results-table" class="table">

@@ -95,38 +95,39 @@
 
   function renderSummary(batch) {
     var s = batch.summary;
-    $("card-documents").textContent = String(s.documents);
-    var totalNode = $("card-total");
-    clear(totalNode);
+    $("total-documents").textContent = String(s.documents);
+    var amountNode = $("total-amount");
+    var noteNode = $("total-errors-note");
+    clear(amountNode);
+    clear(noteNode);
     var lines = R.totalLines(s, batch.invoices);
-    if (!lines.length) {
-      totalNode.textContent = "—";
-    } else {
-      lines.forEach(function (line) {
-        var children = [el("span", { text: formatMoney(line.amount, line.currency) })];
-        if (line.errors > 0) {
-          children.push(
-            el("span", {
-              className: "small muted total-note",
-              text:
-                "leaves out " + plural(line.errors, "error", "errors") + ", " +
-                formatMoney(line.leftOut, line.currency),
-            }),
-          );
-        }
-        totalNode.appendChild(el("span", { className: "total-line" }, children));
-      });
-    }
+    if (!lines.length) amountNode.textContent = "—";
+    lines.forEach(function (line) {
+      amountNode.appendChild(
+        el("span", { className: "total-line", text: formatMoney(line.amount, line.currency) }),
+      );
+      if (line.errors > 0) {
+        var prefix = lines.length > 1 ? line.currency + ": " : "";
+        noteNode.appendChild(
+          el("span", {
+            className: "total-line total-note",
+            text:
+              prefix + "leaves out " + plural(line.errors, "error", "errors") + ", " +
+              formatMoney(line.leftOut, line.currency),
+          }),
+        );
+      }
+    });
     renderCounts(batch);
-    var tokens = batch.usage.input_tokens + batch.usage.output_tokens;
     var cost = batch.usage.estimated_cost_usd;
-    $("card-cost").textContent =
-      tokens.toLocaleString("en-US") + " tokens · " +
-      (cost === null || cost === undefined ? "—" : "~$" + cost.toFixed(2));
-    $("card-time").textContent = (batch.duration_ms / 1000).toFixed(1) + " s";
+    var tokens = batch.usage.input_tokens + batch.usage.output_tokens;
+    $("total-cost").textContent = cost === null || cost === undefined ? "—" : "~$" + cost.toFixed(2);
+    $("total-tokens").textContent = tokens.toLocaleString("en-US") + " tokens";
+    $("total-time").textContent = (batch.duration_ms / 1000).toFixed(1) + " s";
+    $("total-model").textContent = dash(batch.model);
   }
 
-  // The counts come from batch.summary, the same numbers the status counts and the filter chips
+  // The counts come from batch.summary, the same numbers the status counts and the filter tabs
   // show, so the screen never contradicts itself.
   function statusCounts(batch) {
     var s = batch.summary;
@@ -141,7 +142,7 @@
   function setFilter(batch, filter) {
     state.filter = filter;
     renderCounts(batch);
-    renderChips(batch);
+    renderTabs(batch);
     renderTable(batch);
   }
 
@@ -156,17 +157,17 @@
     });
   }
 
-  function renderChips(batch) {
-    var chips = $("filter-chips");
-    clear(chips);
+  function renderTabs(batch) {
+    var tabs = $("filter-tabs");
+    clear(tabs);
     statusCounts(batch).forEach(function (option) {
-      var chip = el("button", {
-        className: "chip",
+      var tab = el("button", {
+        className: "tab",
         text: option[1] + " (" + option[2] + ")",
         attrs: { type: "button", "aria-pressed": state.filter === option[0] ? "true" : "false" },
       });
-      chip.addEventListener("click", function () { setFilter(batch, option[0]); });
-      chips.appendChild(chip);
+      tab.addEventListener("click", function () { setFilter(batch, option[0]); });
+      tabs.appendChild(tab);
     });
   }
 
@@ -339,7 +340,7 @@
       recorded.hidden = true;
     }
     renderSummary(batch);
-    renderChips(batch);
+    renderTabs(batch);
     renderTable(batch);
     $("results").hidden = false;
     var counts = batch.summary;

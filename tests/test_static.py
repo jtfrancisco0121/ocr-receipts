@@ -32,11 +32,11 @@ REQUIRED_IDS = [
     "progress", "progress-text",
     "error-banner", "error-message", "error-fallback", "error-dismiss",
     "sample-missing",
-    "results", "cached-label", "summary-cards",
-    "card-documents", "card-total", "count-ok", "count-review", "count-error", "card-cost",
-    "card-time",
+    "results", "cached-label", "totals-band", "total-documents", "total-amount",
+    "total-errors-note", "count-ok", "count-review", "count-error", "total-cost", "total-time",
     "downloads", "btn-xlsx", "btn-invoices-csv", "btn-line-items-csv",
-    "filter-chips", "results-table", "results-body",
+    "filter-tabs", "results-table", "results-body",
+    "masthead", "wordmark", "theme-toggle",
     "github-link", "docs-link",
 ]  # fmt: skip
 
@@ -393,7 +393,8 @@ def test_spec_strings_are_present():
 def test_layout_is_responsive_to_360px():
     assert 'name="viewport"' in INDEX
     assert "max-width: 639px" in CSS and "overflow-x: auto" in CSS
-    assert "grid-template-columns: repeat(2, 1fr)" in CSS
+    assert re.search(r"\.table-wrap\s*\{[^}]*overflow-x:\s*auto", CSS)
+    assert "repeat(2, 1fr)" not in CSS  # the card grid is gone; the totals band wraps
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
@@ -598,3 +599,16 @@ def test_manila_date_in_node_and_its_fallback():
         + 'console.log(R.formatManilaDate("2026-11-23T13:14:12Z"));'
     )
     assert run_node(broken) == "2026-11-23"
+
+
+def test_masthead_and_totals_band_ids_and_no_card_ids():
+    assert re.search(r'<a id="wordmark"[^>]*href="/"', INDEX)
+    assert not re.findall(r'\bid="card-', INDEX) and 'id="summary-cards"' not in INDEX
+    assert 'id="filter-chips"' not in INDEX
+    assert not re.findall(r"card-|filter-chips|summary-cards", JS)
+    assert "No. 0000001" in INDEX and "Turn a PDF of invoices" in INDEX
+    assert re.search(r"\.table-wrap\s*\{[^}]*overflow-x:\s*auto", CSS)
+    assert "rotate(3deg)" in CSS and "var(--row-tint-error)" in CSS
+    assert "border-radius" not in CSS.replace("border-radius: 0", "").replace(
+        "border-radius: 50%", ""
+    )
