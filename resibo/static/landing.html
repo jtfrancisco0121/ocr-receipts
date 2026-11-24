@@ -67,6 +67,35 @@
           <li class="check-row"><code class="check-code">LOW_CONFIDENCE</code><span class="check-sentence">The reader was unsure about some fields. Please check them.</span><span class="check-severity">Review</span></li>
         </ol>
       </section>
+
+      <section id="how" class="how" aria-labelledby="how-title">
+        <h2 id="how-title" class="section-title">How it reads</h2>
+        <div class="how-grid">
+          <div class="how-copy">
+            <p>Upload a PDF. Resibo hands its pages to Claude, which reads every invoice and receipt on them, then checks each result against 15 rules before it comes back as a table, an Excel file or a CSV.</p>
+            <p>To skip the upload, drop a PDF into a Google Drive folder: an n8n workflow sends it to the API, appends the rows to a Google Sheet and emails a summary. See the <a class="link" href="https://github.com/jtfrancisco0121/ocr-receipts/blob/main/n8n/README.md" target="_blank" rel="noopener">n8n guide</a>.</p>
+            <pre class="code"><code>curl -X POST https://&lt;your-host&gt;/api/extract \
+  -H "X-API-Key: YOUR_KEY" \
+  -F "file=@invoices.pdf"</code></pre>
+          </div>
+          <div class="tally" aria-label="Tally">
+            <h3 class="tally-title">Eval, 8 sample documents</h3>
+            <dl class="tally-list">
+              <div class="tally-row"><dt>Fields correct</dt><dd>114/114</dd></div>
+              <div class="tally-row"><dt>Cost</dt><dd>~$0.08</dd></div>
+              <div class="tally-row"><dt>Time</dt><dd>22.5 s</dd></div>
+            </dl>
+            <h3 class="tally-title">Recorded sample run</h3>
+            <dl class="tally-list">
+              <div class="tally-row"><dt>Documents</dt><dd id="tally-documents"></dd></div>
+              <div class="tally-row"><dt>Flagged</dt><dd id="tally-flagged"></dd></div>
+              <div class="tally-row"><dt>Run time</dt><dd id="tally-time"></dd></div>
+            </dl>
+            <p class="tally-last">15 checks</p>
+            <p class="tally-caption small">These figures come from the 8-document synthetic sample set.</p>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 </body>

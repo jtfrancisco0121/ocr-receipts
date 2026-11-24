@@ -114,7 +114,35 @@
 .check-error { color: var(--red); }
 .check-note { grid-column: 2 / -1; color: var(--ink-2); }
 
+/* How it reads, and the receipt-style tally with dotted leaders. */
+.how { padding: 40px 0 8px; }
+.how-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px 48px; align-items: start; }
+.how-copy { min-width: 0; }
+.how-copy p { margin: 0 0 14px; max-width: 38em; }
+.code {
+  margin: 0; padding: 14px 16px; background: var(--band); border: 1px solid var(--ink-2);
+  overflow-x: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.5;
+}
+.code code { font-family: inherit; }
+.tally { min-width: 0; padding: 18px 20px; border: 2px solid var(--ink-2); background: var(--paper); }
+.tally-title {
+  margin: 14px 0 6px; font-size: 13px; text-transform: uppercase;
+  font-stretch: 85%; letter-spacing: 0.08em; color: var(--ink-2);
+}
+.tally-title:first-child { margin-top: 0; }
+.tally-list { margin: 0; }
+.tally-row { display: flex; align-items: baseline; gap: 6px; padding: 3px 0; }
+.tally-row dt { flex: 0 0 auto; }
+.tally-row::after { content: ""; order: 1; flex: 1 1 auto; border-bottom: 2px dotted var(--ink-2); transform: translateY(-3px); }
+.tally-row dd { order: 2; margin: 0; flex: 0 0 auto; font-family: var(--font-mono); font-weight: 700; }
+.tally-last {
+  margin: 16px 0 0; padding-top: 8px; border-top: 2px solid var(--ink); font-family: var(--font-mono);
+  font-weight: 700; text-align: right;
+}
+.tally-caption { margin: 8px 0 0; color: var(--ink-2); }
+
 @media (max-width: 767px) {
+  .how-grid { grid-template-columns: minmax(0, 1fr); }
   .check-row { grid-template-columns: minmax(0, 1fr) auto; }
   .check-code { grid-column: 1 / -1; }
   .check-note { grid-column: 1 / -1; }

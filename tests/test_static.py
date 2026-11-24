@@ -728,3 +728,31 @@ def test_landing_checks_match_spec_severities_and_ui_sentences():
     assert heading.group(1).endswith("/SPEC.md#9-validation-rules-validationpy")
     assert heading.group(2) == f"{len(rows)} of the {len(flag_codes_in_spec())} checks"
     assert "seller name, invoice number, invoice date or total" in LANDING
+
+
+def test_landing_eval_figures_equal_the_readme_row():
+    readme = (STATIC.parent.parent / "README.md").read_text(encoding="utf-8")
+    accuracy = readme[readme.index("## Accuracy") :]
+    assert "TODO (human step 7)" not in accuracy
+    row = next(x for x in accuracy.splitlines() if x.startswith("| claude-sonnet-5-5"))
+    fields = re.search(r"(\d+/\d+)", row).group(1)
+    seconds = re.search(r"(\d+\.\d) s", row).group(1)
+    cost = float(re.search(r"\$(\d\.\d{3}) for 8 pages", row).group(1))
+    tally = LANDING[LANDING.index('class="tally"') :]
+    assert f"<dd>{fields}</dd>" in tally and f"<dd>{seconds} s</dd>" in tally
+    assert f"<dd>~${cost:.2f}</dd>" in tally
+    assert "Eval, 8 sample documents" in tally and "Recorded sample run" in tally
+    assert "8-document synthetic sample set" in tally
+    assert '<p class="tally-last">15 checks</p>' in tally
+    assert f"{len(flag_codes_in_spec())} checks" in tally
+
+
+def test_landing_how_it_reads_has_a_correct_curl_and_empty_recorded_run_slots():
+    code = re.search(r"<pre[^>]*><code>(.*?)</code></pre>", LANDING, re.S).group(1)
+    assert "curl -X POST" in code and "/api/extract" in code and "X-API-Key" in code
+    assert '-F "file=@' in code and "sk-" not in code and "YOUR_KEY" in code
+    for slot in ("tally-documents", "tally-flagged", "tally-time"):
+        assert re.search(rf'<dd id="{slot}"></dd>', LANDING), slot
+        assert f'$("{slot}")' in LANDING_JS
+    assert len(re.findall(r"\bfetch\(", LANDING_JS)) == 1
+    assert "n8n/README.md" in LANDING and 'id="how"' in LANDING

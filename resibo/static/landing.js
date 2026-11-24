@@ -190,6 +190,7 @@
   }
 
   function showUnavailable() {
+    fillTally(null);
     var body = $("rack-body");
     clear(body);
     body.appendChild(
@@ -200,8 +201,17 @@
     );
   }
 
+  // The recorded-run group of the tally comes from the same single response as the rack.
+  function fillTally(batch) {
+    var s = batch ? batch.summary : null;
+    $("tally-documents").textContent = s ? String(s.documents) : "—";
+    $("tally-flagged").textContent = s ? String(s.review + s.error) : "—";
+    $("tally-time").textContent = batch ? (batch.duration_ms / 1000).toFixed(1) + " s" : "—";
+  }
+
   function show(batch) {
     state.batch = batch;
+    fillTally(batch);
     state.models = (batch.invoices || []).map(R.slipModel);
     if (!state.models.length) {
       showUnavailable();
