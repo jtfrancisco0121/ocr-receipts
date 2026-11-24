@@ -1,6 +1,42 @@
 /* Carbon theme: the only file with colour values. Shared by the landing page and the app.
    Light tokens on :root; the dark set appears twice (explicit choice, and the OS preference when
    no choice is saved) and both copies must stay identical (tests/test_static.py checks it). */
+/* Fonts are self-hosted (the CSP blocks other origins). Courier Prime has no peso sign, so the
+   "Resibo Peso" face draws U+20B1 from the Archivo file and comes first in --font-mono. */
+@font-face {
+  font-family: "Archivo";
+  src: url("fonts/Archivo-Latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Courier Prime";
+  src: url("fonts/CourierPrime-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Courier Prime";
+  src: url("fonts/CourierPrime-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Resibo Peso";
+  src: url("fonts/Archivo-Latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+20B1;
+}
+
 :root {
   --paper: #FDFDFB;
   --band: #F6EBAE;
@@ -21,8 +57,8 @@
   --banner-error-bg: #FDECEE;
   --banner-error-border: #C41C2A;
   --banner-error-fg: #9C0006;
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Resibo Peso", "Courier Prime", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   color-scheme: light;
 }
 

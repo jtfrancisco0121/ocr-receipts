@@ -129,12 +129,60 @@ def test_index_has_no_inline_script_or_style():
     assert landing.script_srcs == []
 
 
+def font_faces() -> list[dict[str, str]]:
+    return [
+        dict(re.findall(r"([\w-]+):\s*([^;]+);", block))
+        for block in re.findall(r"@font-face \{(.*?)\}", THEME, re.S)
+    ]
+
+
+def test_font_faces_are_relative_present_and_swap():
+    faces = font_faces()
+    assert {f["font-family"].strip('"') for f in faces} == {
+        "Archivo",
+        "Courier Prime",
+        "Resibo Peso",
+    }
+    for face in faces:
+        assert face["font-display"] == "swap"
+        url = re.search(r'url\("([^"]+)"\)', face["src"]).group(1)
+        assert url.startswith("fonts/") and "//" not in url and "http" not in url
+        assert (STATIC / url).is_file(), url
+    assert re.findall(r"url\(", THEME) and not re.findall(r"url\(\s*[\"']?(?:https?:|//|/)", THEME)
+
+
+def test_fonts_are_small_licensed_and_packaged(client):
+    fonts = STATIC / "fonts"
+    assert sum(p.stat().st_size for p in fonts.glob("*.woff2")) <= 200 * 1024
+    assert "SIL OPEN FONT LICENSE" in (fonts / "OFL.txt").read_text(encoding="utf-8").upper()
+    pyproject = (STATIC.parent.parent / "pyproject.toml").read_text(encoding="utf-8")
+    assert '"static/fonts/*"' in pyproject
+    for font in sorted(fonts.glob("*.woff2")):
+        r = client.get(f"/static/fonts/{font.name}")
+        assert r.status_code == 200 and r.headers["content-security-policy"] == UI_CSP
+
+
+def test_the_mono_stack_draws_the_peso_sign_from_a_shipped_font():
+    mono = re.search(r"--font-mono:\s*([^;]+);", THEME).group(1)
+    first = mono.split(",")[0].strip().strip('"')
+    face = next(f for f in font_faces() if f["font-family"].strip('"') == first)
+    filename = re.search(r'url\("fonts/([^"]+)"\)', face["src"]).group(1)
+    readme = (STATIC / "fonts" / "README.md").read_text(encoding="utf-8")
+    assert f"- {filename}" in readme
+    line = next(x for x in readme.splitlines() if x.startswith(f"- {filename}"))
+    assert line.endswith("U+20B1: yes"), line
+    for face in font_faces():  # every restricted face must include the peso sign
+        if "unicode-range" in face:
+            assert "U+20B1" in face["unicode-range"]
+
+
 def test_nothing_is_loaded_from_another_origin():
     for page in (INDEX, LANDING):
         assert not re.findall(
             r"""(?:src|href)=["']https?://""", page.replace("https://github.com/", "")
         )
-    assert "@import" not in CSS and "url(http" not in CSS
+    for css in (CSS, THEME):
+        assert "@import" not in css and "url(http" not in css and "//" not in css.replace("/*", "")
     assert 'fetch("http' not in JS
 
 
