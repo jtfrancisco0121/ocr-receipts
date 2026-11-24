@@ -21,7 +21,9 @@ from resibo.models import Batch, ErrorCode, Extraction, ResiboError, build_batch
 from resibo.store import BatchStore
 from resibo.validation import manila_today
 
-NOT_RECORDED_MESSAGE = "Sample result not recorded yet. Run live to process the sample instead."
+NOT_RECORDED_MESSAGE = (
+    "Sample result not recorded yet. POST the sample PDF to /api/extract to process it live."
+)
 
 
 @dataclass(frozen=True)

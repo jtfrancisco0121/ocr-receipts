@@ -34,7 +34,7 @@ build-backend = "setuptools.build_meta"
 include = ["resibo*"]
 
 [tool.setuptools.package-data]
-resibo = ["static/*"]
+resibo = ["static/*", "static/fonts/*"]
 
 [tool.ruff]
 line-length = 100

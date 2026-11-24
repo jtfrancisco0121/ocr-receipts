@@ -106,8 +106,6 @@ formula.
 
 ## Accuracy
 
-TODO (human step 7): run `python scripts/eval.py` with a real key and fill this table.
-
 | Model | Fields correct | Time | Est. cost / page |
 |---|---|---|---|
 | claude-sonnet-5-5 | 114/114 (100%) | 22.5 s | ~$0.010 ($0.081 for 8 pages) |

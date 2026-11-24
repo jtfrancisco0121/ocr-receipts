@@ -383,6 +383,8 @@ class Summary(BaseModel):
     review: int = 0
     error: int = 0
     total_amount_by_currency: dict[str, Money] = Field(default_factory=dict)
+    # OK and REVIEW invoices only; a currency whose invoices are all ERROR is absent
+    total_excluding_errors_by_currency: dict[str, Money] = Field(default_factory=dict)
 
 
 class Downloads(BaseModel):
@@ -408,15 +410,21 @@ class Batch(BaseModel):
 
 def summarize(invoices: list[Invoice]) -> Summary:
     totals: dict[str, Decimal] = {}
+    totals_without_errors: dict[str, Decimal] = {}
     for inv in invoices:
         if inv.total_amount is not None and inv.currency:
             totals[inv.currency] = totals.get(inv.currency, Decimal(0)) + inv.total_amount
+            if inv.status != Status.ERROR:
+                totals_without_errors[inv.currency] = (
+                    totals_without_errors.get(inv.currency, Decimal(0)) + inv.total_amount
+                )
     return Summary(
         documents=len(invoices),
         ok=sum(1 for i in invoices if i.status == Status.OK),
         review=sum(1 for i in invoices if i.status == Status.REVIEW),
         error=sum(1 for i in invoices if i.status == Status.ERROR),
         total_amount_by_currency=totals,
+        total_excluding_errors_by_currency=totals_without_errors,
     )
 
 

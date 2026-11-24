@@ -1,9 +1,12 @@
-from datetime import UTC, datetime
+import json
+from datetime import UTC, date, datetime
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
+from resibo.config import Settings
 from resibo.models import (
     ErrorCode,
     Extraction,
@@ -13,8 +16,12 @@ from resibo.models import (
     build_batch,
     normalize_invoice,
     parse_amount,
+    summarize,
 )
+from resibo.sample import load_recording, replay_extraction
 from tests.helpers import raw_invoice
+
+SAMPLES = Path(__file__).resolve().parent.parent / "samples"
 
 
 def norm(**overrides):
@@ -127,3 +134,54 @@ def test_error_codes_have_http_status():
     assert ErrorCode.DEMO_BUDGET_EXHAUSTED.http_status == 503
     err = ResiboError(ErrorCode.NOT_A_PDF, "nope")
     assert err.status_code == 400 and err.message == "nope"
+
+
+def _invoice(status, total, currency="PHP"):
+    inv = norm(total_amount=total, currency=currency)
+    inv.status = status
+    return inv
+
+
+def test_sample_replay_total_leaves_out_error_invoices():
+    recording = SAMPLES / "sample-result.json"
+    if not recording.exists():
+        pytest.skip("samples/sample-result.json is not recorded")
+    expected = json.loads((SAMPLES / "expected.json").read_text())
+    extraction = replay_extraction(
+        load_recording(recording),
+        (SAMPLES / "sample-invoices.pdf").read_bytes(),
+        Settings(),
+        date.fromisoformat(expected["anchor_date"]),
+    )
+    batch = build_batch(extraction, "abc", "f.pdf", datetime(2026, 11, 24, 5, tzinfo=UTC))
+    summary = batch.model_dump(mode="json")["summary"]
+    assert summary["total_amount_by_currency"] == {"PHP": 176100.0}
+    assert summary["total_excluding_errors_by_currency"] == {"PHP": 155640.0}
+    assert summary["error"] == 2
+
+
+def test_summary_total_equal_when_no_invoice_is_an_error():
+    summary = summarize([_invoice(Status.OK, "100.00"), _invoice(Status.REVIEW, "50.50")])
+    assert summary.total_amount_by_currency == summary.total_excluding_errors_by_currency
+    assert summary.total_excluding_errors_by_currency == {"PHP": Decimal("150.50")}
+
+
+def test_summary_total_is_empty_when_every_invoice_is_an_error():
+    summary = summarize([_invoice(Status.ERROR, "100.00"), _invoice(Status.ERROR, "20.00")])
+    assert summary.total_amount_by_currency == {"PHP": Decimal("120.00")}
+    assert summary.total_excluding_errors_by_currency == {}
+
+
+def test_summary_total_error_only_currency_is_absent_and_order_is_kept():
+    summary = summarize(
+        [
+            _invoice(Status.ERROR, "10.00", "USD"),
+            _invoice(Status.OK, "100.00", "PHP"),
+            _invoice(Status.ERROR, "5.00", "PHP"),
+        ]
+    )
+    assert list(summary.total_amount_by_currency) == ["USD", "PHP"]
+    assert summary.total_excluding_errors_by_currency == {"PHP": Decimal("100.00")}
+    data = summary.model_dump(mode="json")
+    assert data["total_excluding_errors_by_currency"] == {"PHP": 100.0}
+    assert isinstance(data["total_excluding_errors_by_currency"]["PHP"], float)

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resibo - Stop encoding invoices by hand</title>
+  <meta name="description" content="Resibo reads a PDF of Philippine invoices and receipts, checks them and returns a spreadsheet that says which rows to fix.">
+  <link rel="stylesheet" href="/static/theme.css">
+  <link rel="stylesheet" href="/static/landing.css">
+  <script src="/static/theme.js"></script>
+  <script src="/static/common.js" defer></script>
+  <script src="/static/landing.js" defer></script>
+</head>
+<body>
+  <div class="page">
+    <header id="masthead" class="masthead">
+      <div class="masthead-top">
+        <span id="title" class="brand"><a id="wordmark" class="wordmark" href="/">RESIBO</a></span>
+        <span class="masthead-label">Invoice &amp; receipt reader · VAT 12% · ₱</span>
+        <nav class="masthead-nav" aria-label="Site">
+          <a href="#how">How it reads</a>
+          <a href="#checks">What it checks</a>
+          <a href="/docs">API</a>
+          <a href="https://github.com/jtfrancisco0121/ocr-receipts" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+        <span class="serial">No. 0000001</span>
+        <button id="theme-toggle" type="button" aria-pressed="false">Dark mode</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="lede" aria-label="Introduction">
+        <div class="lede-copy">
+          <h1 class="headline">Stop encoding invoices by hand.</h1>
+          <p class="lede-text">Resibo reads a PDF of Philippine invoices and receipts, checks the arithmetic and the BIR details, and hands back a spreadsheet that says which rows to fix and why.</p>
+          <div class="lede-actions">
+            <a id="open-sample" class="btn btn-primary" href="#rack">Open the sample batch</a>
+            <a id="upload-pdf" class="btn btn-secondary" href="/app">Upload a PDF</a>
+          </div>
+        </div>
+        <dl class="form-box" aria-label="What Resibo is">
+          <div class="form-row"><dt>Sold to</dt><dd>Bookkeepers who encode invoices by hand</dd></div>
+          <div class="form-row"><dt>Accepts</dt><dd>A PDF of invoices, receipts or billing statements, up to 15 pages in the demo</dd></div>
+          <div class="form-row"><dt>Gives back</dt><dd>Excel or CSV, with every problem flagged and explained</dd></div>
+          <div class="form-row"><dt>Terms</dt><dd>Free demo, 5 live runs per hour. Files are not stored.</dd></div>
+        </dl>
+      </section>
+
+      <section id="rack" class="rack" aria-label="Sample batch">
+        <h2 class="section-title">The sample batch</h2>
+        <p class="rack-note small">Read from the recorded sample run. Pick a slip to see the document and what Resibo read from it.</p>
+        <div id="rack-body" class="rack-body">
+          <p id="rack-loading">Loading the sample batch…</p>
+        </div>
+      </section>
+
+      <section id="checks" class="checks" aria-labelledby="checks-title">
+        <h2 id="checks-title" class="section-title"><a class="title-link" href="https://github.com/jtfrancisco0121/ocr-receipts/blob/main/SPEC.md#9-validation-rules-validationpy" target="_blank" rel="noopener">8 of the 15 checks</a></h2>
+        <ol class="check-list">
+          <li class="check-row"><code class="check-code">TOTAL_MISMATCH</code><span class="check-sentence">The total does not equal the sales, VAT and any discount added up.</span><span class="check-severity check-error">Error</span></li>
+          <li class="check-row"><code class="check-code">VAT_MISMATCH</code><span class="check-sentence">The VAT is not 12% of the vatable sales.</span><span class="check-severity">Review</span></li>
+          <li class="check-row"><code class="check-code">LINE_ITEMS_MISMATCH</code><span class="check-sentence">The line items do not add up to the document totals.</span><span class="check-severity">Review</span></li>
+          <li class="check-row"><code class="check-code">DUPLICATE</code><span class="check-sentence">The same invoice number from the same seller appears earlier in this batch.</span><span class="check-severity check-error">Error</span></li>
+          <li class="check-row"><code class="check-code">TIN_FORMAT</code><span class="check-sentence">The seller TIN does not have 9, 12 or 14 digits.</span><span class="check-severity">Review</span></li>
+          <li class="check-row"><code class="check-code">MISSING_REQUIRED</code><span class="check-sentence">A field this type of document needs is missing.</span><span class="check-severity">Error or Review</span><span class="check-note small">For invoices and official receipts a missing seller name, invoice number, invoice date or total is an Error; other missing fields are a Review.</span></li>
+          <li class="check-row"><code class="check-code">FUTURE_DATE</code><span class="check-sentence">The invoice date is in the future.</span><span class="check-severity">Review</span></li>
+          <li class="check-row"><code class="check-code">LOW_CONFIDENCE</code><span class="check-sentence">The reader was unsure about some fields. Please check them.</span><span class="check-severity">Review</span></li>
+        </ol>
+      </section>
+
+      <section id="how" class="how" aria-labelledby="how-title">
+        <h2 id="how-title" class="section-title">How it reads</h2>
+        <div class="how-grid">
+          <div class="how-copy">
+            <p>Upload a PDF. Resibo hands its pages to Claude, which reads every invoice and receipt on them, then checks each result against 15 rules before it comes back as a table, an Excel file or a CSV.</p>
+            <p>To skip the upload, drop a PDF into a Google Drive folder: an n8n workflow sends it to the API, appends the rows to a Google Sheet and emails a summary. See the <a class="link" href="https://github.com/jtfrancisco0121/ocr-receipts/blob/main/n8n/README.md" target="_blank" rel="noopener">n8n guide</a>.</p>
+            <pre class="code"><code>curl -X POST https://&lt;your-host&gt;/api/extract \
+  -H "X-API-Key: YOUR_KEY" \
+  -F "file=@invoices.pdf"</code></pre>
+          </div>
+          <div class="tally" aria-label="Tally">
+            <h3 class="tally-title">Eval, 8 sample documents</h3>
+            <dl class="tally-list">
+              <div class="tally-row"><dt>Fields correct</dt><dd>114/114</dd></div>
+              <div class="tally-row"><dt>Cost</dt><dd>~$0.08</dd></div>
+              <div class="tally-row"><dt>Time</dt><dd>22.5 s</dd></div>
+            </dl>
+            <h3 class="tally-title">Recorded sample run</h3>
+            <dl class="tally-list">
+              <div class="tally-row"><dt>Documents</dt><dd id="tally-documents"></dd></div>
+              <div class="tally-row"><dt>Flagged</dt><dd id="tally-flagged"></dd></div>
+              <div class="tally-row"><dt>Run time</dt><dd id="tally-time"></dd></div>
+            </dl>
+            <p class="tally-last">15 checks</p>
+            <p class="tally-caption small">These figures come from the 8-document synthetic sample set.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p class="footer-claim">This demo is not valid for claim of input tax</p>
+      <p id="privacy-note" class="small footer-limits">Files are sent to the Anthropic API for reading and are not stored. Results expire after 60 minutes. Demo limit: 15 pages, 5 live runs per hour.</p>
+      <nav class="footer-links" aria-label="Project links">
+        <a id="github-link" class="link" href="https://github.com/jtfrancisco0121/ocr-receipts" target="_blank" rel="noopener">GitHub</a>
+        <a id="docs-link" class="link" href="/docs">API docs</a>
+        <a id="n8n-link" class="link" href="https://github.com/jtfrancisco0121/ocr-receipts/blob/main/n8n/README.md" target="_blank" rel="noopener">n8n guide</a>
+        <a id="architecture-link" class="link" href="https://github.com/jtfrancisco0121/ocr-receipts/blob/main/docs/architecture.md" target="_blank" rel="noopener">Architecture</a>
+      </nav>
+      <p class="small footer-credit">Built by Jan Terence Francisco</p>
+    </footer>
+  </div>
+</body>
+</html>

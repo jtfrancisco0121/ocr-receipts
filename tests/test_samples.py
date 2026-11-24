@@ -58,13 +58,18 @@ def test_committed_files_match_a_fresh_run(built):
     assert len(PdfReader(str(SAMPLES / "sample-invoices.pdf")).pages) == 8
 
 
-def test_only_the_pdf_and_expected_json_are_committed():
+def test_only_the_pdf_expected_json_and_recording_are_committed():
     import subprocess
 
     tracked = subprocess.run(
         ["git", "ls-files", "samples/"], cwd=ROOT, capture_output=True, text=True, check=True
     ).stdout.split()
-    assert "samples/sample-result.json" not in tracked
+    # the recording from a real live run was committed on purpose (43dc651); nothing else may be
+    assert sorted(tracked) == [
+        "samples/expected.json",
+        "samples/sample-invoices.pdf",
+        "samples/sample-result.json",
+    ]
 
 
 def expected():

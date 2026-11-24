@@ -80,7 +80,7 @@ budget covers every Claude call. The public policy allows one halving level and 
   not state on the adapter, because one `AnthropicLLM` serves concurrent requests.
 - **Budget pricing**: a model missing from the price table is reserved at the highest known
   price, so the public cap cannot be disabled by a configuration typo.
-- **CSP scope**: the strict content security policy applies to `/` and `/static/*` only;
+- **CSP scope**: the strict content security policy applies to `/`, `/app` and `/static/*` only;
   FastAPI's `/docs` page needs an inline script and CDN assets.
 - **Sample files** are found from the working directory (`samples/`; `/app/samples` in the
   image), never from the installed package location.

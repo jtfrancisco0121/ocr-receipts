@@ -267,7 +267,8 @@ All money values are `Decimal` (quantized to 2 places) serialized as JSON number
   "cached": false,
   "summary": {
     "documents": 5, "ok": 3, "review": 2, "error": 0,
-    "total_amount_by_currency": { "PHP": 48210.50 }
+    "total_amount_by_currency": { "PHP": 48210.50 },
+    "total_excluding_errors_by_currency": { "PHP": 48210.50 }
   },
   "invoices": [ /* Invoice objects with id, status, flags */ ],
   "downloads": {
@@ -490,7 +491,7 @@ Columns in order: ID, Status, Flags, Document Type, Seller, Seller TIN, Buyer, B
 Columns: Invoice ID, Invoice No., Seller, Line #, Description, Qty, Unit, Unit Price, Amount.
 
 **Sheet 3 — Summary**
-- File name, processed at (Asia/Manila), model, page count, documents found, OK / Review / Error counts, total amount per currency, tokens used, estimated cost.
+- File name, processed at (Asia/Manila), model, page count, documents found, OK / Review / Error counts, total amount per currency, tokens used, estimated cost. When any invoice is ERROR, each currency has two rows, "Total, excluding errors (CUR)" and "Total, all documents (CUR)", then a note that the ERROR rows are kept on the Invoices sheet; with no ERROR invoices there is a single "Total (CUR)" row.
 - A "Flags" table below: Invoice ID, Code, Severity, Field, Message.
 
 **Formatting**
@@ -516,7 +517,8 @@ Columns: Invoice ID, Invoice No., Seller, Line #, Description, Qty, Unit, Unit P
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/` | Web UI |
+| GET | `/` | Landing page |
+| GET | `/app` | Web UI (the tool) |
 | GET | `/health` | `{"status":"ok","model":"…"}` — no API call. Used by Railway health check. |
 | GET | `/api/sample` | Returns the bundled `samples/sample-invoices.pdf` (used by **Run live** and for viewing the source) |
 | GET | `/api/sample/result` | Cached demo: replays the recorded model output in `samples/sample-result.json` through the normal normalize → validate → store path (see below). `cached: true`, downloads work. No API call; not counted against the budget. One shared sample batch per process, rebuilt only when it expires (so repeated calls do not grow the store). Light per-IP limit: 30 per minute. |
@@ -554,25 +556,29 @@ Codes: `NOT_A_PDF` 400, `PDF_EMPTY` 400, `PDF_ENCRYPTED` 400, `PDF_UNREADABLE` 4
 
 ## 12. Web UI (`static/`)
 
-Single page, no framework, no build step. Must look clean in the demo video.
+No framework, no build step, no third-party requests. Two pages share one Carbon theme:
+- `/` is the landing page (`landing.html`, `landing.css`, `landing.js`): masthead, headline, a sample rack drawn from `GET /api/sample/result`, what Resibo checks, how it reads, the tally and the footer.
+- `/app` is the tool (`index.html`, `styles.css`, `app.js`). `/app#sample` opens it with the cached sample loaded.
+- Shared: `theme.css` (the only file with colour values: light and dark tokens, self-hosted fonts, buttons and the masthead), `theme.js` (the light/dark switch, loaded first in `<head>`), `common.js` (one global `window.Resibo` with the shared helpers and the flag-code sentences) and `fonts/` (Archivo and Courier Prime, SIL OFL, Latin subset, with the peso sign drawn from a shipped font).
 
-**Layout (top to bottom)**
-1. Header: "Resibo" + one-line tagline: "Turn a PDF of invoices into a clean, validated spreadsheet."
-2. Drop zone: drag-and-drop or click to choose; shows file name and page count after selection. Button **Extract**. Secondary button **Try with sample invoices** (calls `/api/sample/result`; instant). Next to it a **Run live** toggle (off by default): when on, the sample button fetches `/api/sample` and submits it to `/api/extract` like an upload. A "View sample PDF" link opens `/api/sample`.
-3. Small privacy note: "Files are sent to the Anthropic API for reading and are not stored. Results expire after 60 minutes. Demo limit: 15 pages, 5 live runs per hour."
-   When a cached result is shown, a small label above the results says "Cached result from a live run on <recorded_at> · turn on Run live to process it now".
+**Carbon theme.** A BIR invoice pad: paper, a canary band, carbon-blue ink, red only for serial numbers and problems, a tilted stamp for rejects; in dark mode the page is the carbon sheet. Square corners, no soft shadows. Light status colours equal the Excel fills. With no saved choice the theme follows the OS; the masthead switch saves a choice in `localStorage` (inside `try/catch`).
+
+**Layout of `/app` (top to bottom)**
+1. Masthead: wordmark "RESIBO" (links to `/`), label, nav, red serial "No. 0000001", the theme switch and the tagline "Turn a PDF of invoices into a clean, validated spreadsheet."
+2. Drop zone: drag-and-drop or click to choose; shows file name and page count after selection. With no file chosen **Try with sample invoices** (calls `/api/sample/result`; instant) is the primary button and **Extract** is hidden; once a file is chosen **Extract** is primary. A "View sample PDF" link opens `/api/sample`. There is no Run live toggle: a cached result shows "Recorded run · <date>" (the batch's `recorded_at` in Asia/Manila time) with a **Run it live now** button, which fetches `/api/sample` and submits it to `/api/extract` like an upload. If the recording is missing, the notice "No recorded sample result yet" offers the same **Run it live now** button.
+3. Privacy and limits note: "Files are sent to the Anthropic API for reading and are not stored. Results expire after 60 minutes. Demo limit: 15 pages, 5 live runs per hour."
+   When a cached result is shown, a small label above the results says "Cached result from a live run · use Run it live now to process it again".
 4. Progress state: spinner + "Reading N pages with Claude…" + elapsed seconds. Disable buttons while running.
 5. Results:
-   - Summary cards: Documents found · Total (₱) · Needs review · Tokens / est. cost · Time taken.
-   - Download buttons: Excel · Invoices CSV · Line items CSV.
-   - Table: Status badge · Seller · Invoice No. · Date · VAT · Total · Pages · Flags (count with tooltip/expand listing messages). Click a row to expand line items.
-   - Filter chips: All / OK / Review / Error.
+   - Totals band (one ruled row): Documents · Total, excluding errors (from `summary.total_excluding_errors_by_currency`, one line per currency, with "leaves out N errors, ₱X" when ERROR rows exist) · OK / Review / Error counts from `summary.ok/review/error` (they double as filters) · Cost with tokens · Time with the model.
+   - Filter tabs All / OK / Review / Error with the same counts, and the download buttons (Excel · Invoices CSV · Line items CSV) on the same line.
+   - Table (scrolls sideways inside its own box; the page never does): chevron · stamped status badge · Seller with the first flag message in red beneath it ("+N more") · Invoice No. · Date · VAT · Total · Pages · Flags (count). The cell of a flagged field has a wavy red underline. Click a row (or press Enter) to expand it: each flag (a plain sentence for its code, the server message, the code), then line items, then notes. Rejected rows sit on the pink tint.
 6. Error banner for API errors (show `error.message`). For `RATE_LIMITED` and `DEMO_BUDGET_EXHAUSTED`, the banner also offers "Show the cached sample instead".
 7. Footer: GitHub repo link, "Built by Jan Terence Francisco", link to `/docs`.
 
-**Safety**: every value from extracted data is inserted with `textContent` (or escaped), never `innerHTML`.
+**Safety**: every value from extracted data is inserted with `textContent` (or escaped), never `innerHTML`. No inline scripts or styles; the CSP stays `default-src 'self'`.
 
-**Style**: system font stack, neutral background, one accent colour, status colours matching Excel (green/amber/red), responsive down to mobile width. Money formatted with `Intl.NumberFormat('en-PH', {style:'currency', currency})`.
+**Style**: Archivo for text and condensed capitals (wordmark, section titles, stamps), Courier Prime for every value, tokens only in `theme.css`, AA contrast in both modes, visible focus, reduced motion respected, responsive down to 375 px. Money formatted with `Intl.NumberFormat('en-PH', {style:'currency', currency})`.
 
 ---
 
