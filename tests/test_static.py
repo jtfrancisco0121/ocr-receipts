@@ -22,6 +22,7 @@ CSS = (STATIC / "styles.css").read_text(encoding="utf-8")
 THEME = (STATIC / "theme.css").read_text(encoding="utf-8")
 THEME_JS = (STATIC / "theme.js").read_text(encoding="utf-8")
 LANDING_CSS = (STATIC / "landing.css").read_text(encoding="utf-8")
+LANDING_JS = (STATIC / "landing.js").read_text(encoding="utf-8")
 COMMON_JS = (STATIC / "common.js").read_text(encoding="utf-8")
 
 # every element the SPEC.md section 12 layout needs
@@ -57,6 +58,7 @@ def test_index_and_assets_are_served_under_the_strict_csp(client):
         ("/static/landing.css", "text/css"),
         ("/static/theme.js", "javascript"),
         ("/static/common.js", "javascript"),
+        ("/static/landing.js", "javascript"),
     ):
         r = client.get(path)
         assert r.status_code == 200, path
@@ -81,7 +83,7 @@ def test_every_section_12_element_id_exists():
 
 
 def test_javascript_never_inserts_html():
-    for js in (JS, THEME_JS, COMMON_JS):
+    for js in (JS, THEME_JS, COMMON_JS, LANDING_JS):
         _assert_no_html_insertion(js)
     assert "textContent" in JS
 
@@ -149,8 +151,8 @@ def test_index_has_no_inline_script_or_style():
     landing.feed(LANDING)
     assert landing.inline_scripts == 0
     assert landing.style_attrs == 0 and landing.handler_attrs == 0
-    assert landing.script_srcs == ["/static/theme.js"]
-    assert landing.head_scripts == [("/static/theme.js", False)]
+    assert landing.script_srcs == ["/static/theme.js", "/static/common.js", "/static/landing.js"]
+    assert landing.head_scripts[0] == ("/static/theme.js", False)
 
 
 def font_faces() -> list[dict[str, str]]:
@@ -231,6 +233,7 @@ def test_nothing_is_loaded_from_another_origin():
     for css in (CSS, THEME, LANDING_CSS):
         assert "@import" not in css and "url(http" not in css and "//" not in css.replace("/*", "")
     assert 'fetch("http' not in JS and "http" not in THEME_JS and "http" not in COMMON_JS
+    assert "http" not in LANDING_JS.replace("//", "")
 
 
 def light_tokens() -> dict[str, str]:
@@ -399,7 +402,7 @@ def test_layout_is_responsive_to_360px():
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
 def test_app_js_parses():
-    for name in ("app.js", "theme.js", "common.js"):
+    for name in ("app.js", "theme.js", "common.js", "landing.js"):
         subprocess.run(["node", "--check", str(STATIC / name)], check=True)
 
 
@@ -628,3 +631,65 @@ def test_landing_has_the_masthead_lede_and_form_box():
         assert f"<dt>{label}</dt>" in LANDING, label
     assert 'id="rack"' in LANDING
     assert "/static/landing.css" in LANDING and "/static/theme.css" in LANDING
+
+
+def sample_batch_json() -> dict:
+    from datetime import UTC, date, datetime
+
+    from resibo.models import build_batch
+    from resibo.sample import load_recording, replay_extraction
+
+    samples = STATIC.parent.parent / "samples"
+    recording = samples / "sample-result.json"
+    if not recording.exists():
+        pytest.skip("samples/sample-result.json is not recorded")
+    expected = json.loads((samples / "expected.json").read_text())
+    extraction = replay_extraction(
+        load_recording(recording),
+        (samples / "sample-invoices.pdf").read_bytes(),
+        Settings(),
+        date.fromisoformat(expected["anchor_date"]),
+    )
+    batch = build_batch(extraction, "abc", "f.pdf", datetime(2026, 11, 24, 5, tzinfo=UTC))
+    return batch.model_dump(mode="json")
+
+
+def test_landing_js_makes_one_request_and_has_the_tab_pattern():
+    assert len(re.findall(r"\bfetch\(", LANDING_JS)) == 1
+    assert (
+        'var SAMPLE_URL = "/api/sample/result"' in LANDING_JS and "fetch(SAMPLE_URL)" in LANDING_JS
+    )
+    assert "Sample not available right now" in LANDING_JS
+    assert re.search(r'href:\s*"/app"', LANDING_JS)
+    assert 'DEFAULT_SLIP = "INV-006"' in LANDING_JS
+    for needle in ('role: "tablist"', 'role: "tab"', "aria-selected", "aria-controls", "tabindex"):
+        assert needle in LANDING_JS, needle
+    for key in ("ArrowRight", "ArrowLeft", "Home", "End"):
+        assert f'"{key}"' in LANDING_JS, key
+    assert "window.Resibo" in LANDING_JS and not re.search(r"window\.\w+\s*=(?!=)", LANDING_JS)
+    assert "R.slipModel" in LANDING_JS and "formatPages" not in LANDING_JS  # labels from slipModel
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_slip_model_over_the_replayed_sample(tmp_path):
+    (tmp_path / "batch.json").write_text(json.dumps(sample_batch_json()))
+    harness = COMMON_HARNESS % str(STATIC / "common.js")
+    path = str(tmp_path / "batch.json")
+    read = f"const batch = JSON.parse(require('fs').readFileSync({path!r}, 'utf8'));"
+    out = run_node(harness + read + "console.log(JSON.stringify(batch.invoices.map(R.slipModel)));")
+    slips = {m["id"]: m for m in json.loads(out)}
+    assert len(slips) == 8
+    assert slips["INV-002"]["pages"] == "2-3"
+    assert slips["INV-004"]["pages"] == "5" and slips["INV-005"]["pages"] == "5"
+    inv6 = slips["INV-006"]
+    assert inv6["label"] == "REJECTED" and inv6["rejected"] and inv6["flagField"] == "total_amount"
+    assert "Computed" in inv6["flagMessage"]
+    assert [f["key"] for f in inv6["fields"]] == [
+        "seller_name", "seller_tin", "buyer_name", "invoice_number", "invoice_date",
+        "document_type", "vatable_sales", "vat_amount", "total_amount", "status",
+    ]  # fmt: skip
+    assert [f["key"] for f in inv6["fields"] if f["flagged"]] == ["total_amount"]
+    assert slips["INV-001"]["label"] == "OK" and slips["INV-001"]["flagField"] is None
+    assert all(
+        f["value"] for m in slips.values() for f in m["fields"]
+    )  # absent is "—", never empty

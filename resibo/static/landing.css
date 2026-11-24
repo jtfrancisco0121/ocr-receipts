@@ -33,11 +33,82 @@
 }
 .form-row dd { margin: 0; font-family: var(--font-mono); font-size: 14px; overflow-wrap: anywhere; }
 
+.link { color: var(--ink); text-decoration: underline; }
+.small { font-size: 13px; line-height: 1.45; }
+.flagged-field { text-decoration: underline wavy var(--red); text-underline-offset: 3px; }
+.badge {
+  display: inline-block; padding: 1px 8px; border: 1px solid currentColor;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.badge-ok { background: var(--status-ok-bg); color: var(--status-ok-fg); }
+.badge-review { background: var(--status-review-bg); color: var(--status-review-fg); }
+.badge-error { background: var(--status-error-bg); color: var(--status-error-fg); transform: rotate(3deg); }
+.flag-note {
+  margin: 12px 0 0; color: var(--red); font-family: var(--font-mono); font-size: 13px; line-height: 1.4;
+}
+
+/* The sample rack, on the canary band. */
 .rack { background: var(--band); padding: 24px; margin: 0 -24px; }
+.rack-note { margin: -8px 0 16px; color: var(--ink-2); }
+.rack-unavailable { margin: 0; }
+
+.slips { display: flex; gap: 10px; overflow-x: auto; padding: 4px 4px 14px; }
+.slip {
+  flex: 0 0 auto; width: 168px; text-align: left; cursor: pointer; font: inherit;
+  display: flex; flex-direction: column; gap: 2px; padding: 8px 10px;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--ink-2); border-radius: 0;
+  transition: transform 0.12s;
+}
+.slip:hover, .slip[aria-selected="true"] { transform: translateY(-3px); }
+.slip[aria-selected="true"] { border: 2px solid var(--ink); }
+.slip-page { font-size: 12px; color: var(--ink-2); }
+.slip-number { font-size: 13px; font-weight: 700; }
+.slip-seller { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slip-status { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--ink-2); }
+.slip-rejected .slip-status { color: var(--red); }
+
+.rack-panel {
+  display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px 32px;
+  align-items: start; margin-top: 8px;
+}
+.doc {
+  position: relative; min-width: 0; padding: 18px 20px 26px; background: var(--paper);
+  border: 1px solid var(--ink-2); box-shadow: 6px 6px 0 var(--ink-2);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.doc-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.doc-seller { font-weight: 850; font-stretch: 66%; text-transform: uppercase; font-size: 22px; letter-spacing: 0.03em; }
+.doc-meta { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 13px; }
+.doc-address, .doc-buyer { margin: 0; font-size: 13px; color: var(--ink-2); }
+.doc-label { font-stretch: 85%; letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px; }
+.doc-lines { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0; }
+.doc-lines th, .doc-lines td { padding: 3px 4px; border-bottom: 1px solid var(--rule); text-align: left; }
+.doc-lines th { border-bottom: 1px solid var(--ink-2); font-size: 11px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.08em; }
+.doc-lines .num { text-align: right; }
+.doc-row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.doc-total { font-weight: 700; }
+.stamp {
+  align-self: flex-end; margin-top: 6px; padding: 2px 14px; border: 3px solid var(--red);
+  color: var(--red); text-transform: uppercase; font-weight: 850; font-stretch: 66%;
+  font-size: 26px; letter-spacing: 0.08em; transform: rotate(3deg);
+}
+
+.read { min-width: 0; }
+.read-title { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; font-stretch: 85%; letter-spacing: 0.08em; color: var(--ink-2); }
+.read-list { margin: 0; border-top: 2px solid var(--ink); }
+.read-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--ink-2); }
+.read-row dt { font-size: 13px; color: var(--ink-2); }
+.read-row dd { margin: 0; text-align: right; font-size: 13px; overflow-wrap: anywhere; }
 
 @media (max-width: 767px) {
   .page { padding: 16px; }
   .lede { grid-template-columns: minmax(0, 1fr); padding: 24px 0; }
   .rack { margin: 0 -16px; padding: 16px; }
+  .rack-panel { grid-template-columns: minmax(0, 1fr); }
   .masthead-nav { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slip { transition: none; }
+  .slip:hover, .slip[aria-selected="true"] { transform: none; }
 }

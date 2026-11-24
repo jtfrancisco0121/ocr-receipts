@@ -117,6 +117,60 @@
     });
   }
 
+  // The ten fields the landing rack lists as "What Resibo read", in order.
+  var SLIP_FIELDS = [
+    ["seller_name", "Seller"],
+    ["seller_tin", "Seller TIN"],
+    ["buyer_name", "Buyer"],
+    ["invoice_number", "Invoice no."],
+    ["invoice_date", "Date"],
+    ["document_type", "Document type"],
+    ["vatable_sales", "Vatable sales"],
+    ["vat_amount", "VAT"],
+    ["total_amount", "Total"],
+    ["status", "Status"]
+  ];
+  var MONEY_FIELDS = ["vatable_sales", "vat_amount", "total_amount"];
+
+  // Everything the rack needs for one invoice: the slip label (page label from source_pages,
+  // never from position), the ten fields with "—" for an absent value, and the first flag.
+  function slipModel(inv) {
+    var flag = inv.flags && inv.flags.length ? inv.flags[0] : null;
+    var rejected = inv.status === "ERROR";
+    var fields = SLIP_FIELDS.map(function (pair) {
+      var raw = inv[pair[0]];
+      var value;
+      if (MONEY_FIELDS.indexOf(pair[0]) !== -1) value = formatMoney(raw, inv.currency);
+      else if (pair[0] === "document_type") value = dash(raw ? String(raw).replace(/_/g, " ") : raw);
+      else value = dash(raw);
+      return { key: pair[0], label: pair[1], value: value, flagged: !!flag && flag.field === pair[0] };
+    });
+    return {
+      id: inv.id,
+      pages: formatPages(inv.source_pages),
+      number: dash(inv.invoice_number),
+      seller: dash(inv.seller_name),
+      status: inv.status,
+      label: rejected ? "REJECTED" : inv.status === "REVIEW" ? "REVIEW" : "OK",
+      rejected: rejected,
+      flagField: flag ? flag.field : null,
+      flagMessage: flag ? flag.message : null,
+      fields: fields,
+      doc: {
+        address: dash(inv.seller_address),
+        buyer: dash(inv.buyer_name),
+        tin: dash(inv.seller_tin),
+        lines: (inv.line_items || []).map(function (item) {
+          return {
+            description: dash(item.description),
+            quantity: dash(item.quantity),
+            amount: formatMoney(item.amount, inv.currency)
+          };
+        })
+      }
+    };
+  }
+
   // One plain sentence for each flag code of SPEC.md section 9. The server's Flag has no title
   // field, so the sentences live here, in the UI only. The landing page lists the same ones.
   var FLAG_SENTENCES = {
@@ -147,6 +201,7 @@
     plural: plural,
     formatManilaDate: formatManilaDate,
     totalLines: totalLines,
+    slipModel: slipModel,
     FLAG_SENTENCES: FLAG_SENTENCES,
   };
 })();
