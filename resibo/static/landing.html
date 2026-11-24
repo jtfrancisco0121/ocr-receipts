@@ -53,6 +53,20 @@
           <p id="rack-loading">Loading the sample batch…</p>
         </div>
       </section>
+
+      <section id="checks" class="checks" aria-labelledby="checks-title">
+        <h2 id="checks-title" class="section-title"><a class="title-link" href="https://github.com/jtfrancisco0121/ocr-receipts/blob/main/SPEC.md#9-validation-rules-validationpy" target="_blank" rel="noopener">8 of the 15 checks</a></h2>
+        <ol class="check-list">
+          <li class="check-row"><code class="check-code">TOTAL_MISMATCH</code><span class="check-sentence">The total does not equal the sales, VAT and any discount added up.</span><span class="check-severity check-error">Error</span></li>
+          <li class="check-row"><code class="check-code">VAT_MISMATCH</code><span class="check-sentence">The VAT is not 12% of the vatable sales.</span><span class="check-severity">Review</span></li>
+          <li class="check-row"><code class="check-code">LINE_ITEMS_MISMATCH</code><span class="check-sentence">The line items do not add up to the document totals.</span><span class="check-severity">Review</span></li>
+          <li class="check-row"><code class="check-code">DUPLICATE</code><span class="check-sentence">The same invoice number from the same seller appears earlier in this batch.</span><span class="check-severity check-error">Error</span></li>
+          <li class="check-row"><code class="check-code">TIN_FORMAT</code><span class="check-sentence">The seller TIN does not have 9, 12 or 14 digits.</span><span class="check-severity">Review</span></li>
+          <li class="check-row"><code class="check-code">MISSING_REQUIRED</code><span class="check-sentence">A field this type of document needs is missing.</span><span class="check-severity">Error or Review</span><span class="check-note small">For invoices and official receipts a missing seller name, invoice number, invoice date or total is an Error; other missing fields are a Review.</span></li>
+          <li class="check-row"><code class="check-code">FUTURE_DATE</code><span class="check-sentence">The invoice date is in the future.</span><span class="check-severity">Review</span></li>
+          <li class="check-row"><code class="check-code">LOW_CONFIDENCE</code><span class="check-sentence">The reader was unsure about some fields. Please check them.</span><span class="check-severity">Review</span></li>
+        </ol>
+      </section>
     </main>
   </div>
 </body>

@@ -693,3 +693,38 @@ def test_slip_model_over_the_replayed_sample(tmp_path):
     assert all(
         f["value"] for m in slips.values() for f in m["fields"]
     )  # absent is "—", never empty
+
+
+def spec_severities() -> dict[str, str]:
+    spec = (STATIC.parent.parent / "SPEC.md").read_text(encoding="utf-8")
+    section = spec[spec.index("## 9. Validation rules") : spec.index("## 10. Exports")]
+    return dict(re.findall(r"^\| `([A-Z_]+)` \| ([a-z /]+?) \|", section, re.M))
+
+
+CHECK_ROW = re.compile(
+    r'<li class="check-row"><code class="check-code">(\w+)</code>'
+    r'<span class="check-sentence">(.*?)</span><span class="check-severity[^"]*">(.*?)</span>'
+)
+CHECKS_ORDER = [
+    "TOTAL_MISMATCH", "VAT_MISMATCH", "LINE_ITEMS_MISMATCH", "DUPLICATE",
+    "TIN_FORMAT", "MISSING_REQUIRED", "FUTURE_DATE", "LOW_CONFIDENCE",
+]  # fmt: skip
+
+
+def test_landing_checks_match_spec_severities_and_ui_sentences():
+    import html
+
+    rows = CHECK_ROW.findall(LANDING)
+    assert [code for code, _, _ in rows] == CHECKS_ORDER
+    severities = spec_severities()
+    sentences = flag_sentences()
+    wording = {"error": "Error", "warning": "Review", "error / warning": "Error or Review"}
+    for code, sentence, severity in rows:
+        assert severity == wording[severities[code]], code
+        assert html.unescape(sentence) == sentences[code], code
+    heading = re.search(
+        r'<h2 id="checks-title"[^>]*><a [^>]*href="([^"]+)"[^>]*>([^<]+)</a>', LANDING
+    )
+    assert heading.group(1).endswith("/SPEC.md#9-validation-rules-validationpy")
+    assert heading.group(2) == f"{len(rows)} of the {len(flag_codes_in_spec())} checks"
+    assert "seller name, invoice number, invoice date or total" in LANDING

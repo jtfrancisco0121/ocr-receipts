@@ -100,7 +100,25 @@
 .read-row dt { font-size: 13px; color: var(--ink-2); }
 .read-row dd { margin: 0; text-align: right; font-size: 13px; overflow-wrap: anywhere; }
 
+/* What it checks: a ruled list, the flag code in the margin. */
+.checks { padding: 40px 0 8px; }
+.title-link { color: inherit; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.check-list { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--ink); }
+.check-row {
+  display: grid; grid-template-columns: 220px minmax(0, 1fr) 120px; gap: 4px 20px;
+  padding: 12px 0; border-bottom: 1px solid var(--ink-2); align-items: baseline;
+}
+.check-code { font-family: var(--font-mono); font-size: 13px; color: var(--red); overflow-wrap: anywhere; }
+.check-sentence { min-width: 0; }
+.check-severity { text-align: right; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
+.check-error { color: var(--red); }
+.check-note { grid-column: 2 / -1; color: var(--ink-2); }
+
 @media (max-width: 767px) {
+  .check-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .check-code { grid-column: 1 / -1; }
+  .check-note { grid-column: 1 / -1; }
+  .check-severity { text-align: right; }
   .page { padding: 16px; }
   .lede { grid-template-columns: minmax(0, 1fr); padding: 24px 0; }
   .rack { margin: 0 -16px; padding: 16px; }
